@@ -160,11 +160,17 @@ Téléphone: ${company.phone ?? 'Non précisé'}
         await this.subscriptionsService.incrementUsage(company.id);
 
         // Envoyer la réponse WhatsApp
-        await this.sendMessage(phoneNumberId, customerPhone, aiResponse);
+        try {
+            await this.sendMessage(phoneNumberId, customerPhone, aiResponse);
+        } catch (err: any) {
+            const metaError = err?.response?.data ?? err?.message;
+            this.logger.error(`Erreur envoi WhatsApp [${err?.response?.status}]: ${JSON.stringify(metaError)}`);
+        }
     }
 
     private async sendMessage(phoneNumberId: string, to: string, text: string): Promise<void> {
         const token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN');
+        this.logger.log(`Envoi WhatsApp → ${to} via phoneNumberId: ${phoneNumberId}, token: ${token?.slice(0, 20)}...`);
         await axios.post(
             `${this.graphApiUrl}/${phoneNumberId}/messages`,
             {
