@@ -14,6 +14,7 @@ import {
     LogOut,
     Handshake,
     Users,
+    Sparkles,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [

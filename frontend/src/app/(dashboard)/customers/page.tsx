@@ -18,10 +18,10 @@ interface Customer {
 }
 
 const SEGMENTS: Record<string, { label: string; color: string }> = {
-    prospect:  { label: 'Prospect',  color: '#f5a623' },
-    client:    { label: 'Client',    color: '#22c55e' },
-    vip:       { label: 'VIP',       color: '#a855f7' },
-    inactif:   { label: 'Inactif',   color: 'rgba(255,255,255,0.2)' },
+    prospect: { label: 'Prospect', color: '#f5a623' },
+    client: { label: 'Client', color: '#22c55e' },
+    vip: { label: 'VIP', color: '#a855f7' },
+    inactif: { label: 'Inactif', color: 'rgba(255,255,255,0.2)' },
 };
 
 const inp: React.CSSProperties = {
@@ -33,12 +33,12 @@ const inp: React.CSSProperties = {
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [total, setTotal]         = useState(0);
-    const [loading, setLoading]     = useState(true);
-    const [selected, setSelected]   = useState<Customer | null>(null);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [selected, setSelected] = useState<Customer | null>(null);
     const [editNotes, setEditNotes] = useState('');
     const [savingNote, setSavingNote] = useState(false);
-    const [search, setSearch]       = useState('');
+    const [search, setSearch] = useState('');
 
     const fetchCustomers = async () => {
         try {

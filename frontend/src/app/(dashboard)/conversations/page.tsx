@@ -108,7 +108,7 @@ export default function ConversationsPage() {
         finally { setSummarizing(false); }
     };
 
-    formatDate = (d: string) =>
+    const formatDate = (d: string) =>
         new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
     const leadBadge = (score?: number) => {
