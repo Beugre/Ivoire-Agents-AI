@@ -126,7 +126,7 @@ export default function AgentForm({ agent, onSaved }: Props) {
 
             <div className="flex gap-3 justify-end pt-2">
                 <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
-                    {isSubmitting ? 'Sauvegarde...' : agent?.id ? 'Mettre à jour' : 'Créer l'agent'}
+                    {isSubmitting ? 'Sauvegarde...' : agent?.id ? 'Mettre à jour' : "Créer l'agent"}
                 </Button>
             </div>
         </form>
