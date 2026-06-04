@@ -57,6 +57,18 @@ export class Company {
     @OneToMany(() => Subscription, (sub) => sub.company)
     subscriptions: Subscription[];
 
+    @Column({ nullable: true, type: 'text' })
+    memory: string; // #38 — Mémoire entreprise injectée dans le prompt IA
+
+    @Column({ nullable: true, default: false })
+    relanceEnabled: boolean; // #29 — Relance auto activée
+
+    @Column({ nullable: true, default: 7 })
+    relanceDays: number; // Délai inactivité (jours) avant relance
+
+    @Column({ nullable: true, type: 'text' })
+    relanceMessage: string; // Message de relance
+
     @CreateDateColumn()
     createdAt: Date;
 

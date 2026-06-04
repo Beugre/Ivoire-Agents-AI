@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KnowledgeBaseItem } from './entities/knowledge-base-item.entity';
+import { KbSuggestion } from './entities/kb-suggestion.entity';
 import { CreateKbItemDto } from './dto/create-kb-item.dto';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class KnowledgeBaseService {
     constructor(
         @InjectRepository(KnowledgeBaseItem)
         private readonly kbRepository: Repository<KnowledgeBaseItem>,
+        @InjectRepository(KbSuggestion)
+        private readonly suggestionRepository: Repository<KbSuggestion>,
     ) { }
 
     async create(dto: CreateKbItemDto, companyId: string): Promise<KnowledgeBaseItem> {
@@ -67,5 +70,35 @@ export class KnowledgeBaseService {
         } as any;
         const result = await aiService.generateReply(fakeAgent, '', knowledge, [], question);
         return { answer: typeof result === 'string' ? result : result.text };
+    }
+
+    // #36 — Suggestions KB
+    async createSuggestion(companyId: string, agentId: string, question: string, suggestedAnswer: string, sourceConversationId?: string): Promise<KbSuggestion> {
+        const existing = await this.suggestionRepository.findOne({ where: { companyId, question } });
+        if (existing) return existing;
+        const s = this.suggestionRepository.create({ companyId, agentId, question, suggestedAnswer, sourceConversationId });
+        return this.suggestionRepository.save(s);
+    }
+
+    async getSuggestions(companyId: string): Promise<KbSuggestion[]> {
+        return this.suggestionRepository.find({
+            where: { companyId, approvedAt: undefined as any },
+            order: { createdAt: 'DESC' },
+            take: 20,
+        });
+    }
+
+    async approveSuggestion(id: string, companyId: string): Promise<KnowledgeBaseItem> {
+        const s = await this.suggestionRepository.findOne({ where: { id, companyId } });
+        if (!s) throw new NotFoundException('Suggestion introuvable');
+        s.approvedAt = new Date();
+        await this.suggestionRepository.save(s);
+        return this.create({ title: s.question, content: s.suggestedAnswer, category: 'faq', agentId: s.agentId } as CreateKbItemDto, companyId);
+    }
+
+    async deleteSuggestion(id: string, companyId: string): Promise<void> {
+        const s = await this.suggestionRepository.findOne({ where: { id, companyId } });
+        if (!s) throw new NotFoundException('Suggestion introuvable');
+        await this.suggestionRepository.remove(s);
     }
 }

@@ -136,4 +136,45 @@ export class KnowledgeBaseController {
         if (!body.sector?.trim()) throw new BadRequestException('Secteur requis');
         return this.aiService.generateSectorPack(body.sector, body.agentId, req.user.companyId, this.kbService);
     }
+
+    // #4 — Mode Formation : enseigner une Q→R à l'IA
+    @Post('train')
+    async train(
+        @Body() body: { question: string; correction: string; agentId: string },
+        @Request() req,
+    ) {
+        if (!body.question?.trim() || !body.correction?.trim()) throw new BadRequestException('Question et correction requises');
+        const entry = await this.aiService.trainFromDialogue(body.question, body.correction);
+        return this.kbService.create({ ...entry, agentId: body.agentId } as any, req.user.companyId);
+    }
+
+    // #34 — Détecter contradictions KB
+    @Get('check-contradictions')
+    async checkContradictions(@Request() req) {
+        const items = await this.kbService.findByCompany(req.user.companyId);
+        return this.aiService.checkContradictions(items.map((i) => ({ id: i.id, title: i.title, content: i.content })));
+    }
+
+    // #35 — Détecter entrées obsolètes
+    @Get('detect-obsolete')
+    async detectObsolete(@Request() req) {
+        const items = await this.kbService.findByCompany(req.user.companyId);
+        return this.aiService.detectObsolete(items.map((i) => ({ id: i.id, title: i.title, content: i.content, createdAt: i.createdAt })));
+    }
+
+    // #36 — Suggestions KB depuis conversations
+    @Get('suggestions')
+    getSuggestions(@Request() req) {
+        return this.kbService.getSuggestions(req.user.companyId);
+    }
+
+    @Post('suggestions/:id/approve')
+    approveSuggestion(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+        return this.kbService.approveSuggestion(id, req.user.companyId);
+    }
+
+    @Delete('suggestions/:id')
+    deleteSuggestion(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+        return this.kbService.deleteSuggestion(id, req.user.companyId);
+    }
 }

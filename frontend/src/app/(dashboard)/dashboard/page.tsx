@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
+interface HeatmapCell { hour: number; day: number; count: number; }
+
 interface Stats {
     total: number;
     open: number;
@@ -76,6 +78,7 @@ export default function DashboardPage() {
     const [agentCount, setAgentCount] = useState(0);
     const [kbCount, setKbCount] = useState(0);
     const [gaps, setGaps] = useState<{ id: string; question: string; count: number; resolvedAt?: string }[]>([]);
+    const [heatmap, setHeatmap] = useState<HeatmapCell[]>([]);
 
     useEffect(() => {
         Promise.all([
@@ -84,13 +87,15 @@ export default function DashboardPage() {
             api.get('/agents'),
             api.get('/knowledge-base'),
             api.get('/conversations/gaps').catch(() => ({ data: [] })),
+            api.get('/conversations/stats/heatmap').catch(() => ({ data: [] })),
         ])
-            .then(([statsRes, weeklyRes, agentsRes, kbRes, gapsRes]) => {
+            .then(([statsRes, weeklyRes, agentsRes, kbRes, gapsRes, heatmapRes]) => {
                 setStats(statsRes.data);
                 setWeeklyData(weeklyRes.data);
                 setAgentCount(Array.isArray(agentsRes.data) ? agentsRes.data.length : 0);
                 setKbCount(Array.isArray(kbRes.data) ? kbRes.data.length : 0);
                 setGaps(Array.isArray(gapsRes.data) ? gapsRes.data.filter((g: any) => !g.resolvedAt).slice(0, 6) : []);
+                setHeatmap(Array.isArray(heatmapRes.data) ? heatmapRes.data : []);
             })
             .catch(() => {
                 setStats({ total: 0, open: 0, humanRequested: 0, closed: 0, totalMessages: 0 });
@@ -217,6 +222,46 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Heatmap — Activité par heure / jour */}
+            {heatmap.length > 0 && (() => {
+                const maxCount = Math.max(...heatmap.map((c) => c.count), 1);
+                const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+                const cellMap: Record<string, number> = {};
+                heatmap.forEach((c) => { cellMap[`${c.day}-${c.hour}`] = c.count; });
+                return (
+                    <div className="rounded-2xl p-6 border overflow-x-auto" style={{ background: '#0f1117', borderColor: 'rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center justify-between mb-5">
+                            <div>
+                                <p className="font-semibold text-white text-[15px]">Heatmap d&apos;activité</p>
+                                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Heures × jours — nombre de messages</p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(24, 1fr)', gap: '3px', minWidth: '700px' }}>
+                            {/* Header hours */}
+                            <div />
+                            {Array.from({ length: 24 }, (_, h) => (
+                                <div key={h} className="text-center text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>{h}h</div>
+                            ))}
+                            {/* Rows per day */}
+                            {DAYS.map((day, di) => (
+                                <>
+                                    <div key={`d-${di}`} className="text-[10px] font-medium flex items-center pr-2" style={{ color: 'rgba(255,255,255,0.35)' }}>{day}</div>
+                                    {Array.from({ length: 24 }, (_, h) => {
+                                        const cnt = cellMap[`${di}-${h}`] ?? 0;
+                                        const opacity = cnt > 0 ? 0.15 + (cnt / maxCount) * 0.85 : 0.04;
+                                        return (
+                                            <div key={`${di}-${h}`} title={`${day} ${h}h : ${cnt} msg`}
+                                                className="rounded-sm cursor-default"
+                                                style={{ background: `rgba(245,166,35,${opacity})`, height: '18px' }} />
+                                        );
+                                    })}
+                                </>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Coach IA — Lacunes KB */}
             {gaps.length > 0 && (

@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Conversation, ConversationStatus } from './entities/conversation.entity';
 import { Message, MessageSender } from './entities/message.entity';
 import { KbGap } from '../knowledge-base/entities/kb-gap.entity';
+import { MessageFeedback, FeedbackType } from './entities/message-feedback.entity';
 
 @Injectable()
 export class ConversationsService {
@@ -14,6 +15,8 @@ export class ConversationsService {
         private readonly msgRepository: Repository<Message>,
         @InjectRepository(KbGap)
         private readonly kbGapRepository: Repository<KbGap>,
+        @InjectRepository(MessageFeedback)
+        private readonly feedbackRepository: Repository<MessageFeedback>,
     ) { }
 
     async findOrCreate(
@@ -179,5 +182,57 @@ export class ConversationsService {
         if (!gap) throw new NotFoundException('Gap introuvable');
         gap.resolvedAt = new Date();
         return this.kbGapRepository.save(gap);
+    }
+
+    // #2 — Feedback ✓/✗ sur un message IA
+    async addFeedback(messageId: string, conversationId: string, companyId: string, type: FeedbackType, correction?: string): Promise<MessageFeedback> {
+        const existing = await this.feedbackRepository.findOne({ where: { messageId, companyId } });
+        if (existing) {
+            existing.type = type;
+            if (correction !== undefined) existing.correction = correction;
+            return this.feedbackRepository.save(existing);
+        }
+        const fb = this.feedbackRepository.create({ messageId, conversationId, companyId, type, correction });
+        return this.feedbackRepository.save(fb);
+    }
+
+    async getFeedbacks(companyId: string): Promise<MessageFeedback[]> {
+        return this.feedbackRepository.find({
+            where: { companyId },
+            order: { createdAt: 'DESC' },
+            take: 50,
+        });
+    }
+
+    async getNegativeFeedbacks(companyId: string): Promise<(MessageFeedback & { messageContent?: string })[]> {
+        const feedbacks = await this.feedbackRepository.find({
+            where: { companyId, type: FeedbackType.NEGATIVE },
+            order: { createdAt: 'DESC' },
+            take: 30,
+        });
+        // Enrich with message content
+        const enriched = await Promise.all(
+            feedbacks.map(async (fb) => {
+                const msg = await this.msgRepository.findOne({ where: { id: fb.messageId } });
+                return { ...fb, messageContent: msg?.content };
+            }),
+        );
+        return enriched;
+    }
+
+    // #33 — Heatmap heures de pointe
+    async getHeatmap(companyId: string): Promise<{ hour: number; day: number; count: number }[]> {
+        const rows = await this.msgRepository
+            .createQueryBuilder('msg')
+            .select("EXTRACT(HOUR FROM msg.createdAt)", 'hour')
+            .addSelect("EXTRACT(DOW FROM msg.createdAt)", 'day')
+            .addSelect('COUNT(*)', 'count')
+            .innerJoin('msg.conversation', 'conv', 'conv.companyId = :companyId', { companyId })
+            .where("msg.sender = 'customer'")
+            .groupBy('hour')
+            .addGroupBy('day')
+            .orderBy('count', 'DESC')
+            .getRawMany();
+        return rows.map((r) => ({ hour: parseInt(r.hour), day: parseInt(r.day), count: parseInt(r.count) }));
     }
 }

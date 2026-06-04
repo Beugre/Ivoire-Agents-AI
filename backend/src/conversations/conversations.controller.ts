@@ -98,4 +98,27 @@ export class ConversationsController {
     resolveGap(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
         return this.conversationsService.resolveGap(id, req.user.companyId);
     }
+
+    // #2 — Feedback ✓/✗
+    @Post(':convId/messages/:msgId/feedback')
+    addFeedback(
+        @Param('convId', ParseUUIDPipe) convId: string,
+        @Param('msgId', ParseUUIDPipe) msgId: string,
+        @Body('type') type: 'positive' | 'negative',
+        @Body('correction') correction: string,
+        @Request() req,
+    ) {
+        return this.conversationsService.addFeedback(msgId, convId, req.user.companyId, type as any, correction);
+    }
+
+    @Get('feedbacks/negative')
+    getNegativeFeedbacks(@Request() req) {
+        return this.conversationsService.getNegativeFeedbacks(req.user.companyId);
+    }
+
+    // #33 — Heatmap
+    @Get('stats/heatmap')
+    getHeatmap(@Request() req) {
+        return this.conversationsService.getHeatmap(req.user.companyId);
+    }
 }

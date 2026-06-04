@@ -276,4 +276,157 @@ Pas de markdown, pas d'explication, juste le JSON.`,
             return [];
         }
     }
+
+    // #4 — Mode Formation : apprendre une correction Q→R via dialogue
+    async trainFromDialogue(question: string, correction: string): Promise<{ title: string; content: string; category: string }> {
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu génères une entrée de base de connaissances à partir d'une correction d'agent IA.
+Retourne UNIQUEMENT un JSON valide : { "title": string, "content": string, "category": string }.
+Les catégories disponibles : product, service, price, schedule, address, faq, delivery, payment, contact, other.
+Pas de markdown, pas d'explication, juste le JSON.`,
+                },
+                {
+                    role: 'user',
+                    content: `Question posée au bot : "${question}"\nRéponse correcte à apprendre : "${correction}"\n\nCrée l'entrée KB optimisée.`,
+                },
+            ],
+            max_tokens: 300,
+            temperature: 0.2,
+        });
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '{}';
+            return JSON.parse(raw.replace(/```json|```/g, '').trim());
+        } catch {
+            return { title: question.slice(0, 60), content: correction, category: 'faq' };
+        }
+    }
+
+    // #34 — Relecture contradictions KB
+    async checkContradictions(items: { id: string; title: string; content: string }[]): Promise<{ id1: string; id2: string; title1: string; title2: string; reason: string }[]> {
+        if (items.length < 2) return [];
+        const formatted = items.map((i) => `[${i.id.slice(0, 8)}] ${i.title}: ${i.content.slice(0, 200)}`).join('\n');
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu analyses une base de connaissances pour trouver des contradictions ou incohérences entre les entrées.
+Retourne UNIQUEMENT un JSON valide : tableau de { "id1": "debut_uuid", "id2": "debut_uuid", "title1": string, "title2": string, "reason": string }.
+Si aucune contradiction, retourne []. Pas de markdown.`,
+                },
+                {
+                    role: 'user',
+                    content: `Base de connaissances :\n${formatted}\n\nTrouve les contradictions.`,
+                },
+            ],
+            max_tokens: 800,
+            temperature: 0.2,
+        });
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '[]';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            // Resolve short IDs back to full IDs
+            return parsed.map((c: any) => {
+                const item1 = items.find((i) => i.id.startsWith(c.id1)) ?? items[0];
+                const item2 = items.find((i) => i.id.startsWith(c.id2)) ?? items[1];
+                return { id1: item1.id, id2: item2.id, title1: item1.title, title2: item2.title, reason: c.reason };
+            });
+        } catch {
+            return [];
+        }
+    }
+
+    // #35 — Détection obsolescence KB
+    async detectObsolete(items: { id: string; title: string; content: string; createdAt: Date }[]): Promise<{ id: string; title: string; reason: string }[]> {
+        if (items.length === 0) return [];
+        const formatted = items.map((i) => `[${i.id.slice(0, 8)}] ${i.title}: ${i.content.slice(0, 150)} (ajouté le ${new Date(i.createdAt).toLocaleDateString('fr-FR')})`).join('\n');
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu analyses une base de connaissances pour identifier les entrées potentiellement obsolètes ou à mettre à jour.
+Critères : informations de prix pouvant changer, horaires susceptibles d'être modifiés, promotions à durée limitée, informations datées.
+Retourne UNIQUEMENT un JSON valide : tableau de { "id": "debut_uuid", "title": string, "reason": string }.
+Si aucune entrée obsolète, retourne []. Pas de markdown.`,
+                },
+                {
+                    role: 'user',
+                    content: `Entrées KB :\n${formatted}`,
+                },
+            ],
+            max_tokens: 600,
+            temperature: 0.2,
+        });
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '[]';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            return parsed.map((o: any) => {
+                const item = items.find((i) => i.id.startsWith(o.id)) ?? items[0];
+                return { id: item.id, title: item.title, reason: o.reason };
+            });
+        } catch {
+            return [];
+        }
+    }
+
+    // #36 — Générer suggestions KB depuis conversations fermées (#36)
+    async generateKbSuggestions(conversations: { question: string; answer: string }[]): Promise<{ question: string; suggestedAnswer: string }[]> {
+        if (conversations.length === 0) return [];
+        const samples = conversations.slice(0, 15).map((c) => `Q: ${c.question}\nR: ${c.answer}`).join('\n\n');
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu analyses des échanges client→agent pour identifier les nouvelles informations à ajouter à la base de connaissances.
+Retourne UNIQUEMENT un JSON valide : tableau de { "question": string, "suggestedAnswer": string } pour les échanges utiles et non déjà couverts.
+Pas de markdown.`,
+                },
+                {
+                    role: 'user',
+                    content: `Échanges récents :\n${samples}`,
+                },
+            ],
+            max_tokens: 1500,
+            temperature: 0.3,
+        });
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '[]';
+            return JSON.parse(raw.replace(/```json|```/g, '').trim());
+        } catch {
+            return [];
+        }
+    }
+
+    // #20 — Segmentation automatique d'un client
+    async autoSegmentCustomer(conversations: { content: string; sender: string }[]): Promise<string> {
+        if (conversations.length === 0) return 'prospect';
+        const transcript = conversations.slice(-20).map((m) => `${m.sender === 'customer' ? 'Client' : 'Agent'}: ${m.content}`).join('\n');
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu segmentes un client en commerce ivoirien selon ses échanges WhatsApp.
+Segments possibles (réponds UNIQUEMENT avec l'un de ces mots) :
+- prospect : premier contact, simple curiosité, pas encore acheté
+- client : a déjà acheté ou a confirmé une commande
+- vip : client fidèle, commandes multiples, fort engagement
+- inactif : pas de réponse depuis longtemps, conversations fermées sans achat
+Réponds avec UN SEUL mot parmi : prospect, client, vip, inactif.`,
+                },
+                { role: 'user', content: transcript },
+            ],
+            max_tokens: 10,
+            temperature: 0.1,
+        });
+        const raw = completion.choices[0]?.message?.content?.trim().toLowerCase() ?? 'prospect';
+        const valid = ['prospect', 'client', 'vip', 'inactif'];
+        return valid.includes(raw) ? raw : 'prospect';
+    }
 }

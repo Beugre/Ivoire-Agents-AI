@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { Users, Phone, MessageSquare, Tag, StickyNote, X, Check } from 'lucide-react';
+import { Users, Phone, MessageSquare, Tag, StickyNote, X, Check, Sparkles } from 'lucide-react';
 
 interface Customer {
     id: string;
@@ -38,6 +38,7 @@ export default function CustomersPage() {
     const [selected, setSelected] = useState<Customer | null>(null);
     const [editNotes, setEditNotes] = useState('');
     const [savingNote, setSavingNote] = useState(false);
+    const [segmenting, setSegmenting] = useState(false);
     const [search, setSearch] = useState('');
 
     const fetchCustomers = async () => {
@@ -71,6 +72,18 @@ export default function CustomersPage() {
             toast.success('Note sauvegardée');
         } catch { toast.error('Erreur'); }
         finally { setSavingNote(false); }
+    };
+
+    const handleAutoSegment = async () => {
+        if (!selected) return;
+        setSegmenting(true);
+        try {
+            const { data } = await api.post(`/customers/${selected.id}/auto-segment`);
+            setCustomers((prev) => prev.map((c) => c.id === selected.id ? { ...c, segment: data.segment } : c));
+            setSelected((prev) => prev ? { ...prev, segment: data.segment } : null);
+            toast.success(`Segment détecté : ${data.segment} ✓`);
+        } catch { toast.error('Erreur auto-segmentation'); }
+        finally { setSegmenting(false); }
     };
 
     const filtered = customers.filter((c) => {
@@ -217,6 +230,14 @@ export default function CustomersPage() {
                                         </button>
                                     ))}
                                 </div>
+                                <button
+                                    onClick={handleAutoSegment}
+                                    disabled={segmenting}
+                                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-semibold disabled:opacity-50 transition-all"
+                                    style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                                    <Sparkles className="w-3 h-3" />
+                                    {segmenting ? 'Analyse...' : 'Auto-segmenter avec l\'IA'}
+                                </button>
                             </div>
 
                             {/* Notes */}

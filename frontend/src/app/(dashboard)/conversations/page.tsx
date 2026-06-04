@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Send, Bot, User, UserCheck, RotateCcw, StickyNote, MessageSquare, X, Sparkles, ChevronDown } from 'lucide-react';
+import { Send, Bot, User, UserCheck, RotateCcw, StickyNote, MessageSquare, X, Sparkles, ChevronDown, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Customer { name?: string; phone: string; }
@@ -44,6 +44,9 @@ export default function ConversationsPage() {
     const [sendingReply, setSendingReply] = useState(false);
     const [summarizing, setSummarizing] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
+    const [feedbacks, setFeedbacks] = useState<Record<string, 'positive' | 'negative'>>({});
+    const [correcting, setCorrecting] = useState<string | null>(null);
+    const [correction, setCorrection] = useState('');
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const fetchConversations = async () => {
@@ -106,6 +109,27 @@ export default function ConversationsPage() {
             toast.success('Résumé généré');
         } catch { toast.error('Erreur lors de la génération du résumé'); }
         finally { setSummarizing(false); }
+    };
+
+    const handleFeedback = async (msgId: string, type: 'positive' | 'negative', corr?: string) => {
+        if (!selected) return;
+        try {
+            await api.post(`/conversations/${selected.id}/messages/${msgId}/feedback`, { type, correction: corr });
+            setFeedbacks((prev) => ({ ...prev, [msgId]: type }));
+            if (type === 'negative' && !corr) {
+                setCorrecting(msgId);
+            } else {
+                setCorrecting(null);
+                setCorrection('');
+                toast.success(type === 'positive' ? 'Feedback positif enregistré ✓' : 'Feedback négatif enregistré — merci !');
+            }
+        } catch { toast.error('Erreur feedback'); }
+    };
+
+    const submitCorrection = async (msgId: string) => {
+        if (!correction.trim()) return;
+        await handleFeedback(msgId, 'negative', correction);
+        toast.success('Correction envoyée — disponible en Centre d\'entraînement');
     };
 
     const formatDate = (d: string) =>
@@ -268,6 +292,7 @@ export default function ConversationsPage() {
                             {messages.map((msg) => {
                                 const isCustomer = msg.sender === 'customer';
                                 const isAi = msg.sender === 'ai';
+                                const fb = feedbacks[msg.id];
                                 return (
                                     <div key={msg.id} className={cn('flex', isCustomer ? 'justify-start' : 'justify-end')}>
                                         <div className="max-w-xs lg:max-w-md space-y-1">
@@ -285,6 +310,46 @@ export default function ConversationsPage() {
                                                         : { background: 'rgba(96,165,250,0.15)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(96,165,250,0.2)', borderTopRightRadius: '4px' }}>
                                                 {msg.content}
                                             </div>
+                                            {/* Feedback buttons for AI messages */}
+                                            {isAi && (
+                                                <div className="flex items-center gap-1 px-1 justify-end">
+                                                    <button
+                                                        onClick={() => handleFeedback(msg.id, 'positive')}
+                                                        title="Bonne réponse"
+                                                        className="p-1 rounded-lg transition-all"
+                                                        style={fb === 'positive' ? { color: '#22c55e', background: 'rgba(34,197,94,0.12)' } : { color: 'rgba(255,255,255,0.2)', background: 'transparent' }}>
+                                                        <ThumbsUp className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleFeedback(msg.id, 'negative')}
+                                                        title="Mauvaise réponse"
+                                                        className="p-1 rounded-lg transition-all"
+                                                        style={fb === 'negative' ? { color: '#f87171', background: 'rgba(248,113,113,0.12)' } : { color: 'rgba(255,255,255,0.2)', background: 'transparent' }}>
+                                                        <ThumbsDown className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {/* Correction input for negative feedback */}
+                                            {isAi && correcting === msg.id && (
+                                                <div className="flex gap-1.5 mt-1">
+                                                    <input
+                                                        style={{ ...inp, flex: 1, width: 'auto', fontSize: '12px', padding: '7px 10px' }}
+                                                        placeholder="Quelle aurait été la bonne réponse ?"
+                                                        value={correction}
+                                                        onChange={(e) => setCorrection(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && submitCorrection(msg.id)}
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={() => submitCorrection(msg.id)}
+                                                        className="px-3 py-1.5 rounded-xl text-[11px] font-semibold flex-shrink-0"
+                                                        style={{ background: 'rgba(245,166,35,0.15)', color: '#f5a623' }}>Envoyer</button>
+                                                    <button
+                                                        onClick={() => { setCorrecting(null); setCorrection(''); }}
+                                                        className="px-2 py-1.5 rounded-xl text-[11px] flex-shrink-0"
+                                                        style={{ color: 'rgba(255,255,255,0.3)' }}>✕</button>
+                                                </div>
+                                            )}
                                             <p className="text-[10px] px-1" style={{ color: 'rgba(255,255,255,0.15)', textAlign: isCustomer ? 'left' : 'right' }}>
                                                 {new Date(msg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                             </p>

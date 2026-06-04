@@ -21,5 +21,6 @@ import { CompaniesModule } from '../companies/companies.module';
     ],
     providers: [WhatsappService],
     controllers: [WhatsappController],
+    exports: [WhatsappService],
 })
 export class WhatsappModule { }

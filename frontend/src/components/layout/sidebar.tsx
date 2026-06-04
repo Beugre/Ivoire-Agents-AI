@@ -15,6 +15,8 @@ import {
     Handshake,
     Users,
     Sparkles,
+    GraduationCap,
+    Megaphone,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -32,6 +34,8 @@ const NAV_SECTIONS = [
         items: [
             { href: '/agents', label: 'Agents IA', icon: Bot },
             { href: '/knowledge-base', label: 'Base de connaissances', icon: BookOpen },
+            { href: '/training', label: "Centre d'entraînement", icon: GraduationCap },
+            { href: '/campaigns', label: 'Campagnes', icon: Megaphone },
         ],
     },
     {

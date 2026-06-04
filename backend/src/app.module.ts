@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CompaniesModule } from './companies/companies.module';
@@ -12,21 +13,26 @@ import { AiModule } from './ai/ai.module';
 import { CustomersModule } from './customers/customers.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { HandoffModule } from './handoff/handoff.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 
 import { User } from './users/entities/user.entity';
 import { Company } from './companies/entities/company.entity';
 import { Agent } from './agents/entities/agent.entity';
 import { KnowledgeBaseItem } from './knowledge-base/entities/knowledge-base-item.entity';
 import { KbGap } from './knowledge-base/entities/kb-gap.entity';
+import { KbSuggestion } from './knowledge-base/entities/kb-suggestion.entity';
 import { Conversation } from './conversations/entities/conversation.entity';
 import { Message } from './conversations/entities/message.entity';
+import { MessageFeedback } from './conversations/entities/message-feedback.entity';
 import { Customer } from './customers/entities/customer.entity';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { HandoffRequest } from './handoff/entities/handoff-request.entity';
+import { Campaign } from './campaigns/entities/campaign.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -39,11 +45,14 @@ import { HandoffRequest } from './handoff/entities/handoff-request.entity';
           Agent,
           KnowledgeBaseItem,
           KbGap,
+          KbSuggestion,
           Conversation,
           Message,
+          MessageFeedback,
           Customer,
           Subscription,
           HandoffRequest,
+          Campaign,
         ],
         synchronize: true,
         ssl: config.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
@@ -61,6 +70,7 @@ import { HandoffRequest } from './handoff/entities/handoff-request.entity';
     CustomersModule,
     SubscriptionsModule,
     HandoffModule,
+    CampaignsModule,
   ],
 })
 export class AppModule { }
