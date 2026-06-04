@@ -97,7 +97,7 @@ export default function AgentsPage() {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>{editAgent ? 'Modifier l'agent' : 'Créer un agent IA'}</DialogTitle>
+                            <DialogTitle>{editAgent ? "Modifier l'agent" : 'Créer un agent IA'}</DialogTitle>
                         </DialogHeader>
                         <AgentForm agent={editAgent} onSaved={handleSaved} />
                     </DialogContent>
