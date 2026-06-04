@@ -112,4 +112,26 @@ export class ConversationsService {
 
         return { total, open, humanRequested, closed, totalMessages };
     }
+
+    async getWeeklyMessages(companyId: string): Promise<{ label: string; messages: number }[]> {
+        const DAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        const result: { label: string; messages: number }[] = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const end = new Date(start.getTime() + 86_400_000);
+
+            const count = await this.msgRepository
+                .createQueryBuilder('msg')
+                .innerJoin('msg.conversation', 'conv', 'conv.companyId = :companyId', { companyId })
+                .where('msg.createdAt >= :start AND msg.createdAt < :end', { start, end })
+                .getCount();
+
+            result.push({ label: DAY_LABELS[date.getDay()], messages: count });
+        }
+
+        return result;
+    }
 }

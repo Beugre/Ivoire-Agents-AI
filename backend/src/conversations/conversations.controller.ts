@@ -33,6 +33,11 @@ export class ConversationsController {
         return this.conversationsService.getStats(req.user.companyId);
     }
 
+    @Get('stats/weekly')
+    getWeeklyStats(@Request() req) {
+        return this.conversationsService.getWeeklyMessages(req.user.companyId);
+    }
+
     @Get(':id')
     findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
         return this.conversationsService.findOne(id, req.user.companyId);
