@@ -2,6 +2,8 @@ import {
     Injectable,
     Logger,
     BadRequestException,
+    Inject,
+    forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,6 +19,7 @@ import { CompaniesService } from '../companies/companies.service';
 import { Company } from '../companies/entities/company.entity';
 import { ConversationStatus } from '../conversations/entities/conversation.entity';
 import { MessageSender } from '../conversations/entities/message.entity';
+import { WhatsappConnectionService } from './whatsapp-connection.service';
 
 @Injectable()
 export class WhatsappService {
@@ -32,6 +35,8 @@ export class WhatsappService {
         private readonly customersService: CustomersService,
         private readonly subscriptionsService: SubscriptionsService,
         private readonly companiesService: CompaniesService,
+        @Inject(forwardRef(() => WhatsappConnectionService))
+        private readonly connectionService: WhatsappConnectionService,
     ) { }
 
     verifyWebhook(mode: string, token: string, challenge: string): string {
@@ -190,9 +195,15 @@ Téléphone: ${company.phone ?? 'Non précisé'}
         }
     }
 
+    /** Envoie un message via le token global (env) — backward compat */
     private async sendMessage(phoneNumberId: string, to: string, text: string): Promise<void> {
-        const token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN');
-        this.logger.log(`Envoi WhatsApp → ${to} via phoneNumberId: ${phoneNumberId}, token: ${token?.slice(0, 20)}...`);
+        const token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN') ?? '';
+        await this.sendMessageWithToken(phoneNumberId, to, text, token);
+    }
+
+    /** Envoie un message avec un token explicite — utilisé par les connexions per-company */
+    async sendMessageWithToken(phoneNumberId: string, to: string, text: string, token: string): Promise<void> {
+        this.logger.log(`Envoi WhatsApp → ${to} via phoneNumberId: ${phoneNumberId}`);
         await axios.post(
             `${this.graphApiUrl}/${phoneNumberId}/messages`,
             {
@@ -211,9 +222,28 @@ Téléphone: ${company.phone ?? 'Non précisé'}
         );
     }
 
+    /** Utilisé par CampaignsService — résout le token per-company automatiquement */
+    async sendTextMessage(to: string, text: string, companyId: string): Promise<void> {
+        const conn = await this.connectionService.getActiveConnection(companyId);
+        let phoneNumberId: string;
+        let token: string;
+        if (conn) {
+            phoneNumberId = conn.phoneNumberId;
+            token = this.connectionService.decryptToken(conn.accessTokenEncrypted);
+        } else {
+            phoneNumberId = this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID') ?? '';
+            token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN') ?? '';
+        }
+        await this.sendMessageWithToken(phoneNumberId, to, text, token);
+    }
+
     private async findCompanyByPhoneNumberId(phoneNumberId: string): Promise<Company | null> {
-        // Le phoneNumberId est stocké dans company via un champ dédié
-        // Pour simplifier le MVP, on retourne la première company ayant ce numéro configuré
+        // 1. Chercher via la table whatsapp_connections (per-company Embedded Signup)
+        const companyIdFromConn = await this.connectionService.findCompanyIdByPhoneNumberId(phoneNumberId);
+        if (companyIdFromConn) {
+            return this.companiesService.findById(companyIdFromConn);
+        }
+        // 2. Fallback legacy: chercher via company.whatsappPhoneNumberId
         return this.companiesService.findByPhoneNumberId(phoneNumberId);
     }
 }

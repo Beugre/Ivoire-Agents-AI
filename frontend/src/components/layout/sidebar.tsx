@@ -17,6 +17,7 @@ import {
     Sparkles,
     GraduationCap,
     Megaphone,
+    Smartphone,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -36,6 +37,7 @@ const NAV_SECTIONS = [
             { href: '/knowledge-base', label: 'Base de connaissances', icon: BookOpen },
             { href: '/training', label: "Centre d'entraînement", icon: GraduationCap },
             { href: '/campaigns', label: 'Campagnes', icon: Megaphone },
+            { href: '/whatsapp-connect', label: 'Connexion WhatsApp', icon: Smartphone },
         ],
     },
     {

@@ -28,6 +28,7 @@ import { Customer } from './customers/entities/customer.entity';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { HandoffRequest } from './handoff/entities/handoff-request.entity';
 import { Campaign } from './campaigns/entities/campaign.entity';
+import { WhatsappConnection } from './whatsapp/entities/whatsapp-connection.entity';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { Campaign } from './campaigns/entities/campaign.entity';
           Subscription,
           HandoffRequest,
           Campaign,
+          WhatsappConnection,
         ],
         synchronize: true,
         ssl: config.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
