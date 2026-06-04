@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { Agent, AgentTone } from '../agents/entities/agent.entity';
 import { Message } from '../conversations/entities/message.entity';
+import { buildNouchiContext } from './nouchi-vocabulary';
 
 const TONE_INSTRUCTIONS: Record<AgentTone, string> = {
     [AgentTone.PROFESSIONAL]:
@@ -10,7 +11,7 @@ const TONE_INSTRUCTIONS: Record<AgentTone, string> = {
     [AgentTone.WARM]:
         'Sois chaleureux, bienveillant et empathique dans tes réponses.',
     [AgentTone.IVORIAN]:
-        "Adopte un ton ivoirien authentique. Tu peux utiliser des expressions du nouchi (ex: 'C'est gbê', 'On va gérer ça', 'C'est comment ?', 'A bientôt wê', 'C'est cool là', 'Mon frère/ma sœur'). Reste naturel et proche.",
+        "Adopte un ton ivoirien authentique. Tu parles le nouchi couramment. Utilise les salutations nouchi, les expressions d'approbation et de réconfort naturellement dans tes réponses. Reste proche, chaleureux et naturel comme un ivoirien.",
     [AgentTone.FORMAL]:
         'Sois très formel, utilise le vouvoiement systématiquement.',
     [AgentTone.FRIENDLY]:
@@ -57,7 +58,7 @@ Instructions personnalisées :
 ${agent.customInstructions ?? "Réponds de manière utile et précise."}
 
 ${CI_CONTEXT}
-
+${agent.tone === AgentTone.IVORIAN ? buildNouchiContext() : ''}
 Tu dois :
 - Répondre poliment et de manière concise (maximum 3 paragraphes sauf demande complexe)
 - Utiliser UNIQUEMENT les informations de l'entreprise pour répondre

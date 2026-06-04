@@ -113,7 +113,7 @@ export default function BillingPage() {
                     <div>
                         <p className="font-semibold text-white text-sm">Coût moyen par message : {stats.costPerMessage} FCFA</p>
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                            Sur {stats.messagesUsed} messages traités ce mois. 
+                            Sur {stats.messagesUsed} messages traités ce mois.
                             {stats.marginPercent != null && stats.marginPercent < 30
                                 ? ' ⚠️ Marge faible — envisagez de passer à un plan supérieur.'
                                 : ' Votre rentabilité est bonne.'}
