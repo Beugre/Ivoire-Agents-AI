@@ -50,4 +50,17 @@ export class KnowledgeBaseService {
             .map((item) => `[${item.category.toUpperCase()}] ${item.title}:\n${item.content}`)
             .join('\n\n');
     }
+
+    async testAgentAnswer(agentId: string, companyId: string, question: string, aiService: any): Promise<{ answer: string }> {
+        const knowledge = await this.getFormattedKnowledge(agentId, companyId);
+        const fakeAgent = {
+            name: 'Assistant IA',
+            role: 'Répondre aux questions sur l\'entreprise',
+            tone: 'professional',
+            language: 'french',
+            customInstructions: null,
+        } as any;
+        const result = await aiService.generateReply(fakeAgent, '', knowledge, [], question);
+        return { answer: typeof result === 'string' ? result : result.text };
+    }
 }

@@ -99,4 +99,31 @@ ${knowledgeBase}`;
         const totalTokens = completion.usage?.total_tokens ?? 0;
         return { text, totalTokens };
     }
+
+    async extractKnowledgeFromText(rawText: string): Promise<{ title: string; content: string; category: string }[]> {
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu es un assistant qui extrait des informations structurées depuis un texte brut (conversation WhatsApp, description Facebook, catalogue, etc.) pour alimenter la base de connaissances d'un agent IA d'entreprise.
+Retourne UNIQUEMENT un JSON valide : un tableau d'objets avec les champs : title (string), content (string), category (une de : product, service, price, schedule, address, faq, delivery, payment, contact, other).
+Pas de markdown, pas d'explication, juste le JSON.`,
+                },
+                {
+                    role: 'user',
+                    content: `Extrais toutes les informations utiles depuis ce texte :\n\n${rawText.slice(0, 4000)}`,
+                },
+            ],
+            max_tokens: 2000,
+            temperature: 0.2,
+        });
+
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '[]';
+            return JSON.parse(raw);
+        } catch {
+            return [];
+        }
+    }
 }
