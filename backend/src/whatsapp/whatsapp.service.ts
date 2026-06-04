@@ -52,11 +52,19 @@ export class WhatsappService {
         const phoneNumberId = value.metadata?.phone_number_id;
         const message = value.messages[0];
 
-        if (message.type !== 'text') return;
+        if (message.type !== 'text' && message.type !== 'location') return;
 
         const customerPhone = message.from;
-        const customerMessage = message.text.body;
         const waMessageId = message.id;
+
+        let customerMessage: string;
+        if (message.type === 'location') {
+            const { latitude, longitude, name, address } = message.location ?? {};
+            const mapsUrl = `https://maps.google.com/maps?q=${latitude},${longitude}`;
+            customerMessage = `[Localisation partagée] ${name ?? ''} ${address ?? ''} — ${mapsUrl}`.trim();
+        } else {
+            customerMessage = message.text.body;
+        }
 
         // Trouver la company via le phoneNumberId configuré
         const company = await this.findCompanyByPhoneNumberId(phoneNumberId);
@@ -125,14 +133,17 @@ Téléphone: ${company.phone ?? 'Non précisé'}
 
         // Générer réponse IA
         let aiResponse: string;
+        let tokensUsed = 0;
         try {
-            aiResponse = await this.aiService.generateReply(
+            const result = await this.aiService.generateReply(
                 agent,
                 companyContext,
                 knowledge,
                 messages,
                 customerMessage,
             );
+            aiResponse = result.text;
+            tokensUsed = result.totalTokens;
         } catch (err) {
             this.logger.error('Erreur OpenAI', err);
             aiResponse = "Je suis momentanément indisponible. Veuillez réessayer dans quelques instants.";
@@ -156,8 +167,8 @@ Téléphone: ${company.phone ?? 'Non précisé'}
             MessageSender.AI,
         );
 
-        // Incrémenter l'usage
-        await this.subscriptionsService.incrementUsage(company.id);
+        // Incrémenter l'usage avec les tokens réels
+        await this.subscriptionsService.incrementUsage(company.id, tokensUsed);
 
         // Envoyer la réponse WhatsApp
         try {

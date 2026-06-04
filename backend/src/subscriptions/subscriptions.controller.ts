@@ -16,4 +16,9 @@ export class SubscriptionsController {
     getCurrent(@Request() req) {
         return this.subscriptionsService.findActiveByCompany(req.user.companyId);
     }
+
+    @Get('stats')
+    getStats(@Request() req) {
+        return this.subscriptionsService.getUsageStats(req.user.companyId);
+    }
 }

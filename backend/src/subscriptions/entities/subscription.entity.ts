@@ -44,6 +44,12 @@ export class Subscription {
     @Column({ default: 0 })
     messagesUsed: number;
 
+    @Column({ default: 0 })
+    tokensUsed: number;
+
+    @Column({ type: 'float', default: 0 })
+    estimatedCostUsd: number;
+
     @Column({ nullable: true })
     stripeSubscriptionId: string;
 
