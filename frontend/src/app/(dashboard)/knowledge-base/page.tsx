@@ -6,7 +6,7 @@ import api from '@/lib/api';
 import {
     Plus, Trash2, Pencil, ChevronRight, Brain, Sparkles,
     MessageSquare, X, Send, Upload, Check, ArrowLeft, Loader2,
-    FileText, Globe, Wand2, Clock,
+    FileText, Globe, Wand2, Clock, Package, User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,15 +16,15 @@ interface Agent { id: string; name: string; }
 
 /* ─── Modules ────────────────────────────────────────────────── */
 const MODULES = [
-    { value: 'product',  label: 'Produits',    emoji: '📦', color: '#f5a623', desc: 'Vos articles, références, gammes' },
-    { value: 'service',  label: 'Services',    emoji: '⚙️', color: '#818cf8', desc: 'Prestations et savoir-faire' },
-    { value: 'price',    label: 'Tarifs',       emoji: '💰', color: '#22c55e', desc: 'Prix, promotions, offres' },
-    { value: 'schedule', label: 'Horaires',     emoji: '🕐', color: '#38bdf8', desc: "Heures d'ouverture, jours fériés" },
-    { value: 'address',  label: 'Localisation', emoji: '📍', color: '#fb923c', desc: 'Adresse, accès, itinéraire' },
-    { value: 'faq',      label: 'FAQ',          emoji: '❓', color: '#a78bfa', desc: 'Questions fréquentes' },
-    { value: 'delivery', label: 'Livraison',    emoji: '🚚', color: '#34d399', desc: 'Zones, délais, frais' },
-    { value: 'payment',  label: 'Paiement',     emoji: '💳', color: '#f472b6', desc: 'Moyens acceptés, conditions' },
-    { value: 'contact',  label: 'Contact',      emoji: '📞', color: '#94a3b8', desc: 'Téléphone, email, réseaux' },
+    { value: 'product', label: 'Produits', emoji: '📦', color: '#f5a623', desc: 'Vos articles, références, gammes' },
+    { value: 'service', label: 'Services', emoji: '⚙️', color: '#818cf8', desc: 'Prestations et savoir-faire' },
+    { value: 'price', label: 'Tarifs', emoji: '💰', color: '#22c55e', desc: 'Prix, promotions, offres' },
+    { value: 'schedule', label: 'Horaires', emoji: '🕐', color: '#38bdf8', desc: "Heures d'ouverture, jours fériés" },
+    { value: 'address', label: 'Localisation', emoji: '📍', color: '#fb923c', desc: 'Adresse, accès, itinéraire' },
+    { value: 'faq', label: 'FAQ', emoji: '❓', color: '#a78bfa', desc: 'Questions fréquentes' },
+    { value: 'delivery', label: 'Livraison', emoji: '🚚', color: '#34d399', desc: 'Zones, délais, frais' },
+    { value: 'payment', label: 'Paiement', emoji: '💳', color: '#f472b6', desc: 'Moyens acceptés, conditions' },
+    { value: 'contact', label: 'Contact', emoji: '📞', color: '#94a3b8', desc: 'Téléphone, email, réseaux' },
 ];
 
 /* ─── Styles ─────────────────────────────────────────────────── */
@@ -41,7 +41,7 @@ const LBL = ({ children }: { children: React.ReactNode }) => (
 );
 
 /* ─── DAYS ───────────────────────────────────────────────────── */
-const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 const mkSchedule = () => DAYS.map((day) => ({ day, open: day !== 'Dimanche', from: '08:00', to: '18:00' }));
 
 /* ─── ModuleCard ─────────────────────────────────────────────── */
@@ -194,42 +194,50 @@ function serializeLocation(v: { description: string; neighborhood: string; mapLi
    PAGE
 ═══════════════════════════════════════════════════════════════ */
 export default function KnowledgeBasePage() {
-    const [items, setItems]         = useState<KBItem[]>([]);
-    const [agents, setAgents]       = useState<Agent[]>([]);
+    const [items, setItems] = useState<KBItem[]>([]);
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [selectedAgent, setAgent] = useState<string>('');
-    const [loading, setLoading]     = useState(true);
+    const [loading, setLoading] = useState(true);
     const [activeModule, setModule] = useState<string | null>(null);
-    const [showAdd, setShowAdd]     = useState(false);
-    const [editItem, setEditItem]   = useState<KBItem | null>(null);
+    const [showAdd, setShowAdd] = useState(false);
+    const [editItem, setEditItem] = useState<KBItem | null>(null);
 
     // per-category form states
-    const [productForm, setProductForm]     = useState({ name: '', price: '', description: '' });
-    const [serviceForm, setServiceForm]     = useState({ name: '', rate: '', duration: '', description: '' });
-    const [faqForm, setFaqForm]             = useState({ question: '', answer: '' });
-    const [scheduleForm, setScheduleForm]   = useState<ScheduleDay[]>(mkSchedule());
-    const [locationForm, setLocationForm]   = useState({ description: '', neighborhood: '', mapLink: '' });
-    const [genericForm, setGenericForm]     = useState({ title: '', content: '' });
+    const [productForm, setProductForm] = useState({ name: '', price: '', description: '' });
+    const [serviceForm, setServiceForm] = useState({ name: '', rate: '', duration: '', description: '' });
+    const [faqForm, setFaqForm] = useState({ question: '', answer: '' });
+    const [scheduleForm, setScheduleForm] = useState<ScheduleDay[]>(mkSchedule());
+    const [locationForm, setLocationForm] = useState({ description: '', neighborhood: '', mapLink: '' });
+    const [genericForm, setGenericForm] = useState({ title: '', content: '' });
 
     // test panel
-    const [testOpen, setTestOpen]   = useState(false);
-    const [testMsgs, setTestMsgs]   = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
+    const [testOpen, setTestOpen] = useState(false);
+    const [testMsgs, setTestMsgs] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
     const [testInput, setTestInput] = useState('');
-    const [testLoad, setTestLoad]   = useState(false);
+    const [testLoad, setTestLoad] = useState(false);
     const testEnd = useRef<HTMLDivElement>(null);
 
     // import modal
-    const [importOpen, setImportOpen]           = useState(false);
-    const [importTab, setImportTab]             = useState<'text' | 'file' | 'url'>('text');
-    const [importText, setImportText]           = useState('');
-    const [importUrl, setImportUrl]             = useState('');
-    const [importLoad, setImportLoad]           = useState(false);
-    const [importPreview, setImportPreview]     = useState<{ title: string; content: string; category: string }[]>([]);
+    const [importOpen, setImportOpen] = useState(false);
+    const [importTab, setImportTab] = useState<'text' | 'file' | 'url'>('text');
+    const [importText, setImportText] = useState('');
+    const [importUrl, setImportUrl] = useState('');
+    const [importLoad, setImportLoad] = useState(false);
+    const [importPreview, setImportPreview] = useState<{ title: string; content: string; category: string }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // generate FAQs
-    const [genFaqLoad, setGenFaqLoad]           = useState(false);
-    const [genFaqPreview, setGenFaqPreview]     = useState<{ title: string; content: string; category: string }[]>([]);
-    const [genFaqOpen, setGenFaqOpen]           = useState(false);
+    const [genFaqLoad, setGenFaqLoad] = useState(false);
+    const [genFaqPreview, setGenFaqPreview] = useState<{ title: string; content: string; category: string }[]>([]);
+    const [genFaqOpen, setGenFaqOpen] = useState(false);
+
+    // packs métier
+    const [packOpen, setPackOpen] = useState(false);
+    const [packLoading, setPackLoading] = useState(false);
+    const [packSector, setPackSector] = useState('');
+
+    // persona test
+    const [testPersona, setTestPersona] = useState<string>('');
 
     /* ── fetch ── */
     const fetchData = async () => {
@@ -254,13 +262,13 @@ export default function KnowledgeBasePage() {
     };
 
     /* ── computed ── */
-    const filtered     = selectedAgent ? items.filter((i) => i.agentId === selectedAgent) : items;
-    const countFor     = (cat: string) => filtered.filter((i) => i.category === cat).length;
-    const filled       = MODULES.filter((m) => countFor(m.value) > 0).length;
-    const score        = Math.round((filled / MODULES.length) * 100);
+    const filtered = selectedAgent ? items.filter((i) => i.agentId === selectedAgent) : items;
+    const countFor = (cat: string) => filtered.filter((i) => i.category === cat).length;
+    const filled = MODULES.filter((m) => countFor(m.value) > 0).length;
+    const score = Math.round((filled / MODULES.length) * 100);
     const currentAgent = agents.find((a) => a.id === selectedAgent);
-    const activeMod    = MODULES.find((m) => m.value === activeModule);
-    const modItems     = activeModule ? filtered.filter((i) => i.category === activeModule) : [];
+    const activeMod = MODULES.find((m) => m.value === activeModule);
+    const modItems = activeModule ? filtered.filter((i) => i.category === activeModule) : [];
 
     /* ── serialize & save ── */
     const getSerialized = (): { title: string; content: string } | null => {
@@ -331,7 +339,7 @@ export default function KnowledgeBasePage() {
         setTestMsgs((m) => [...m, { role: 'user', text: q }]);
         setTestInput(''); setTestLoad(true);
         try {
-            const { data } = await api.post('/knowledge-base/test-agent', { agentId: selectedAgent, question: q });
+            const { data } = await api.post('/knowledge-base/test-agent', { agentId: selectedAgent, question: q, persona: testPersona || undefined });
             setTestMsgs((m) => [...m, { role: 'ai', text: data.answer }]);
         } catch { setTestMsgs((m) => [...m, { role: 'ai', text: '⚠️ Erreur.' }]); }
         finally { setTestLoad(false); }
@@ -402,6 +410,19 @@ export default function KnowledgeBasePage() {
         setGenFaqOpen(false); setGenFaqPreview([]); fetchData();
     };
 
+    /* ── Generate Pack ── */
+    const handleGeneratePack = async () => {
+        if (!packSector.trim() || !selectedAgent) { toast.error('Sélectionnez un secteur'); return; }
+        setPackLoading(true);
+        try {
+            const { data } = await api.post('/knowledge-base/generate-pack', { sector: packSector, agentId: selectedAgent });
+            toast.success(`${data.length} entrées ajoutées pour le secteur ${packSector} !`);
+            setPackOpen(false); setPackSector('');
+            fetchData();
+        } catch { toast.error('Erreur lors de la génération du pack'); }
+        finally { setPackLoading(false); }
+    };
+
     /* ══ RENDER ══════════════════════════════════════════════════ */
     return (
         <div className="min-h-screen flex flex-col" style={{ background: '#080a10' }}>
@@ -433,6 +454,12 @@ export default function KnowledgeBasePage() {
                             {agents.map((a) => <option key={a.id} value={a.id} style={{ background: '#13151f' }}>{a.name}</option>)}
                         </select>
                     )}
+                    {/* Packs métier */}
+                    <button onClick={() => setPackOpen(true)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-medium transition-all hover:opacity-80"
+                        style={{ background: 'rgba(34,197,94,0.08)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.18)' }}>
+                        <Package className="w-3.5 h-3.5" /> Packs métier
+                    </button>
                     {/* Generate FAQs button */}
                     <button onClick={handleGenFaqs} disabled={genFaqLoad}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-medium transition-all disabled:opacity-40"
@@ -478,6 +505,24 @@ export default function KnowledgeBasePage() {
                             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                                 <motion.div className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
                                     style={{ background: score >= 60 ? '#22c55e' : score >= 30 ? '#f5a623' : '#f87171' }} />
+                            </div>
+                            {/* Sub-scores */}
+                            <div className="mt-3 space-y-1.5">
+                                {[
+                                    { label: 'Couverture', value: score, color: score >= 60 ? '#22c55e' : score >= 30 ? '#f5a623' : '#f87171' },
+                                    { label: 'Densité FAQ', value: Math.min(100, Math.round((countFor('faq') / 10) * 100)), color: '#818cf8' },
+                                    { label: 'Volume infos', value: Math.min(100, Math.round((filtered.length / 30) * 100)), color: '#38bdf8' },
+                                ].map((s) => (
+                                    <div key={s.label}>
+                                        <div className="flex justify-between mb-0.5">
+                                            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{s.label}</span>
+                                            <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.value}%</span>
+                                        </div>
+                                        <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${s.value}%`, background: s.color }} />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <div className="space-y-1">
@@ -540,12 +585,12 @@ export default function KnowledgeBasePage() {
                                                 <button onClick={() => { setShowAdd(false); setEditItem(null); resetForms(); }} className="p-1.5 rounded-lg hover:bg-white/5" style={{ color: 'rgba(255,255,255,0.3)' }}><X className="w-4 h-4" /></button>
                                             </div>
 
-                                            {activeModule === 'product'  && <ProductForm  v={productForm}  onChange={setProductForm} />}
-                                            {activeModule === 'service'  && <ServiceForm  v={serviceForm}  onChange={setServiceForm} />}
-                                            {activeModule === 'faq'      && <FaqForm      v={faqForm}      onChange={setFaqForm} />}
+                                            {activeModule === 'product' && <ProductForm v={productForm} onChange={setProductForm} />}
+                                            {activeModule === 'service' && <ServiceForm v={serviceForm} onChange={setServiceForm} />}
+                                            {activeModule === 'faq' && <FaqForm v={faqForm} onChange={setFaqForm} />}
                                             {activeModule === 'schedule' && <ScheduleFormCmp v={scheduleForm} onChange={setScheduleForm} />}
-                                            {activeModule === 'address'  && <LocationFormCmp v={locationForm} onChange={setLocationForm} />}
-                                            {!['product','service','faq','schedule','address'].includes(activeModule ?? '') &&
+                                            {activeModule === 'address' && <LocationFormCmp v={locationForm} onChange={setLocationForm} />}
+                                            {!['product', 'service', 'faq', 'schedule', 'address'].includes(activeModule ?? '') &&
                                                 <GenericForm v={genericForm} onChange={setGenericForm} placeholder={`Informations sur ${activeMod?.label.toLowerCase()}...`} />}
 
                                             <div className="flex justify-end gap-2 mt-4">
@@ -594,6 +639,24 @@ export default function KnowledgeBasePage() {
                                     <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Simulez une question client</p>
                                 </div>
                                 <button onClick={() => setTestOpen(false)} className="p-1.5 rounded-lg hover:bg-white/5" style={{ color: 'rgba(255,255,255,0.3)' }}><X className="w-4 h-4" /></button>
+                            </div>
+                            {/* Persona selector */}
+                            <div className="px-3 py-2.5 border-b flex flex-wrap gap-1.5" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.015)' }}>
+                                <p className="w-full text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.25)' }}>Persona client :</p>
+                                {[
+                                    { id: '', label: 'Normal', emoji: '😊' },
+                                    { id: 'pressed', label: 'Pressé', emoji: '⚡' },
+                                    { id: 'difficult', label: 'Difficile', emoji: '😤' },
+                                    { id: 'negotiator', label: 'Négociateur', emoji: '💰' },
+                                ].map((p) => (
+                                    <button key={p.id} onClick={() => setTestPersona(p.id)}
+                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-all"
+                                        style={testPersona === p.id
+                                            ? { background: 'rgba(245,166,35,0.15)', color: '#f5a623', border: '1px solid rgba(245,166,35,0.3)' }
+                                            : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                        {p.emoji} {p.label}
+                                    </button>
+                                ))}
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {testMsgs.length === 0 && (
@@ -647,7 +710,7 @@ export default function KnowledgeBasePage() {
                                 <>
                                     {/* Tabs */}
                                     <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                        {([['text','Texte / WhatsApp', MessageSquare], ['file','Fichier PDF/TXT', FileText], ['url','Site web', Globe]] as const).map(([tab, label, Icon]) => (
+                                        {([['text', 'Texte / WhatsApp', MessageSquare], ['file', 'Fichier PDF/TXT', FileText], ['url', 'Site web', Globe]] as const).map(([tab, label, Icon]) => (
                                             <button key={tab} onClick={() => setImportTab(tab)}
                                                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-all"
                                                 style={importTab === tab ? { background: 'rgba(245,166,35,0.12)', color: '#f5a623' } : { color: 'rgba(255,255,255,0.4)' }}>
@@ -728,6 +791,56 @@ export default function KnowledgeBasePage() {
                                     </div>
                                 </>
                             )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ═══ PACKS MÉTIER MODAL ══════════════════════════════ */}
+            <AnimatePresence>
+                {packOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+                        <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+                            className="w-full max-w-md rounded-2xl border p-6 space-y-5" style={{ background: '#13151f', borderColor: 'rgba(34,197,94,0.2)' }}>
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-[15px] font-bold text-white flex items-center gap-2"><Package className="w-4 h-4" style={{ color: '#22c55e' }} />Pack métier</p>
+                                    <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Remplissez la KB en 1 clic avec des données réalistes Abidjan</p>
+                                </div>
+                                <button onClick={() => { setPackOpen(false); setPackSector(''); }} className="p-2 rounded-lg hover:bg-white/5" style={{ color: 'rgba(255,255,255,0.3)' }}><X className="w-4 h-4" /></button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'restaurant', emoji: '🍽', label: 'Restaurant' },
+                                    { id: 'salon', emoji: '💇', label: 'Salon' },
+                                    { id: 'boutique', emoji: '🛍', label: 'Boutique' },
+                                    { id: 'clinique', emoji: '🏥', label: 'Clinique' },
+                                    { id: 'transport', emoji: '🚚', label: 'Transport' },
+                                    { id: 'immobilier', emoji: '🏢', label: 'Immobilier' },
+                                ].map((s) => (
+                                    <button key={s.id} onClick={() => setPackSector(s.id)}
+                                        className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all"
+                                        style={packSector === s.id
+                                            ? { background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.4)', color: '#22c55e' }
+                                            : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }}>
+                                        <span className="text-xl">{s.emoji}</span>
+                                        <span className="text-[11px] font-medium">{s.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                                ⚡ L&apos;IA génère 15-25 entrées réalistes (produits, tarifs, horaires, FAQ...) adaptées à Abidjan.
+                            </p>
+                            <div className="flex gap-3">
+                                <button onClick={() => { setPackOpen(false); setPackSector(''); }} className="flex-1 py-2.5 rounded-xl text-[13px] hover:bg-white/5 transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>Annuler</button>
+                                <button onClick={handleGeneratePack} disabled={packLoading || !packSector}
+                                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
+                                    style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white' }}>
+                                    {packLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    {packLoading ? 'Génération...' : 'Générer le pack'}
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

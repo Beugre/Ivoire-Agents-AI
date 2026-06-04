@@ -74,10 +74,10 @@ export class KnowledgeBaseController {
 
     @Post('test-agent')
     async testAgent(
-        @Body() body: { agentId: string; question: string },
+        @Body() body: { agentId: string; question: string; persona?: string },
         @Request() req,
     ) {
-        return this.kbService.testAgentAnswer(body.agentId, req.user.companyId, body.question, this.aiService);
+        return this.kbService.testAgentAnswer(body.agentId, req.user.companyId, body.question, this.aiService, body.persona);
     }
 
     @Post('import-url')
@@ -126,5 +126,14 @@ export class KnowledgeBaseController {
         @Request() req,
     ) {
         return this.aiService.generateFaqs(body.agentId, req.user.companyId, this.kbService);
+    }
+
+    @Post('generate-pack')
+    async generatePack(
+        @Body() body: { sector: string; agentId: string },
+        @Request() req,
+    ) {
+        if (!body.sector?.trim()) throw new BadRequestException('Secteur requis');
+        return this.aiService.generateSectorPack(body.sector, body.agentId, req.user.companyId, this.kbService);
     }
 }

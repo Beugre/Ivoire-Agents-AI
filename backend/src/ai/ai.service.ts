@@ -148,6 +148,108 @@ Pas de markdown, pas d'explication, juste le JSON.`,
         }
     }
 
+    async calculateLeadScore(customerMessage: string, recentMessages: string): Promise<number> {
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu es un expert en qualification de prospects B2C en Côte d'Ivoire.
+Analyse le message client et attribue un score d'intention d'achat de 0 à 100.
+- 0-30 : simple curiosité, pas d'intention claire
+- 31-60 : intéressé, pose des questions sur les prix/services
+- 61-85 : intention forte (demande de devis, "je veux", "comment commander", "livraison", "disponible ?")
+- 86-100 : prêt à acheter maintenant ("je prends", "commande", "paiement", "adresse de livraison")
+Réponds UNIQUEMENT avec un entier entre 0 et 100, rien d'autre.`,
+                },
+                {
+                    role: 'user',
+                    content: `Dernier message: "${customerMessage}"\n\nContexte récent: ${recentMessages}`,
+                },
+            ],
+            max_tokens: 10,
+            temperature: 0.1,
+        });
+        const raw = completion.choices[0]?.message?.content?.trim() ?? '10';
+        const score = parseInt(raw, 10);
+        return isNaN(score) ? 10 : Math.min(100, Math.max(0, score));
+    }
+
+    async summarizeConversation(messages: { sender: string; content: string }[]): Promise<string> {
+        const transcript = messages
+            .slice(-20)
+            .map((m) => `${m.sender === 'customer' ? 'Client' : 'Agent'}: ${m.content}`)
+            .join('\n');
+
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu es un assistant commercial en Côte d'Ivoire. Résume cette conversation WhatsApp en 3 lignes max.
+Format: 
+• Intention: [ce que veut le client]
+• Produits/services évoqués: [liste]
+• Action suggérée: [ce que l'équipe devrait faire]
+Sois concis et actionnable.`,
+                },
+                { role: 'user', content: `Conversation:\n${transcript}` },
+            ],
+            max_tokens: 200,
+            temperature: 0.3,
+        });
+        return completion.choices[0]?.message?.content?.trim() ?? 'Résumé non disponible.';
+    }
+
+    async generateSectorPack(sector: string, agentId: string, companyId: string, kbService: any): Promise<{ title: string; content: string; category: string }[]> {
+        const SECTOR_CONTEXT: Record<string, string> = {
+            restaurant: 'plats, menus du jour, boissons, livraison, réservations, horaires, tarifs typiques de restauration à Abidjan',
+            salon: 'coiffure, soins, tresses, lissage, massage, manucure, pédicure, épilation, tarifs, durées des prestations',
+            boutique: 'vêtements, mode, accessoires, tailles disponibles, livraison, retours, paiement Mobile Money',
+            clinique: 'consultations, spécialités médicales, rendez-vous, urgences, analyses, tarifs, horaires, médecins disponibles',
+            transport: 'zones desservies, tarifs par kilomètre, réservation, horaires, types de véhicules, bagages',
+            immobilier: 'locations, ventes, appartements, villas, studios, prix au m², quartiers, visites, caution',
+        };
+        const context = SECTOR_CONTEXT[sector.toLowerCase()] ?? `activités et services typiques d'un ${sector}`;
+
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Tu es expert en commerce local en Côte d'Ivoire, spécialisé dans le secteur ${sector}.
+Génère un pack complet de données de démonstration pour alimenter la base de connaissances d'un agent IA.
+Les données doivent être réalistes pour Abidjan : prix en FCFA, noms ivoiriens, quartiers d'Abidjan, Mobile Money.
+Couvre : ${context}.
+Retourne UNIQUEMENT un JSON valide : tableau d'objets { "title": string, "content": string, "category": string }.
+Les catégories disponibles sont : product, service, price, schedule, address, faq, delivery, payment, contact, other.
+Génère 15-25 entrées variées et pertinentes. Pas de markdown, pas d'explication.`,
+                },
+                {
+                    role: 'user',
+                    content: `Génère le pack de base de connaissances pour : ${sector} à Abidjan`,
+                },
+            ],
+            max_tokens: 3000,
+            temperature: 0.5,
+        });
+
+        try {
+            const raw = completion.choices[0]?.message?.content ?? '[]';
+            const cleaned = raw.replace(/```json|```/g, '').trim();
+            const items = JSON.parse(cleaned);
+            // Auto-save items to the KB
+            const saved: any[] = [];
+            for (const item of items) {
+                const s = await kbService.create({ ...item, agentId, companyId } as any, companyId);
+                saved.push(s);
+            }
+            return saved;
+        } catch {
+            return [];
+        }
+    }
+
     async extractKnowledgeFromText(rawText: string): Promise<{ title: string; content: string; category: string }[]> {
         const completion = await this.openai.chat.completions.create({
             model: 'gpt-4o-mini',

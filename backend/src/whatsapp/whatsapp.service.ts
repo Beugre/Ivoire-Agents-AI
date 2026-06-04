@@ -158,7 +158,18 @@ Téléphone: ${company.phone ?? 'Non précisé'}
                 company.id,
                 ConversationStatus.HUMAN_REQUESTED,
             );
+            // Enregistrer la lacune KB de façon asynchrone (non bloquant)
+            this.conversationsService.recordGap(customerMessage, company.id, agent.id).catch(() => void 0);
         }
+
+        // Calculer le lead score de façon asynchrone (non bloquant)
+        const recentContext = messages
+            .slice(-5)
+            .map((m) => `${m.sender}: ${m.content}`)
+            .join(' | ');
+        this.aiService.calculateLeadScore(customerMessage, recentContext)
+            .then((score) => this.conversationsService.updateLeadScore(conversation.id, company.id, score))
+            .catch(() => void 0);
 
         // Enregistrer la réponse IA
         await this.conversationsService.addMessage(

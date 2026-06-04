@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation, ConversationStatus } from './entities/conversation.entity';
 import { Message, MessageSender } from './entities/message.entity';
+import { KbGap } from '../knowledge-base/entities/kb-gap.entity';
 
 @Injectable()
 export class ConversationsService {
@@ -11,6 +12,8 @@ export class ConversationsService {
         private readonly convRepository: Repository<Conversation>,
         @InjectRepository(Message)
         private readonly msgRepository: Repository<Message>,
+        @InjectRepository(KbGap)
+        private readonly kbGapRepository: Repository<KbGap>,
     ) { }
 
     async findOrCreate(
@@ -133,5 +136,48 @@ export class ConversationsService {
         }
 
         return result;
+    }
+
+    async updateLeadScore(id: string, companyId: string, score: number): Promise<void> {
+        await this.convRepository.update({ id, companyId }, { leadScore: score });
+    }
+
+    async summarize(id: string, companyId: string, aiService: any): Promise<Conversation> {
+        const conv = await this.findOne(id, companyId);
+        const messages = await this.msgRepository.find({
+            where: { conversationId: id },
+            order: { createdAt: 'ASC' },
+        });
+        const summary = await aiService.summarizeConversation(messages);
+        conv.summary = summary;
+        return this.convRepository.save(conv);
+    }
+
+    async recordGap(question: string, companyId: string, agentId: string): Promise<void> {
+        const existing = await this.kbGapRepository.findOne({
+            where: { question, companyId, resolvedAt: undefined as any },
+        });
+        if (existing) {
+            existing.count += 1;
+            await this.kbGapRepository.save(existing);
+        } else {
+            const gap = this.kbGapRepository.create({ question, companyId, agentId });
+            await this.kbGapRepository.save(gap);
+        }
+    }
+
+    async getGaps(companyId: string): Promise<KbGap[]> {
+        return this.kbGapRepository.find({
+            where: { companyId },
+            order: { count: 'DESC', createdAt: 'DESC' },
+            take: 15,
+        });
+    }
+
+    async resolveGap(id: string, companyId: string): Promise<KbGap> {
+        const gap = await this.kbGapRepository.findOne({ where: { id, companyId } });
+        if (!gap) throw new NotFoundException('Gap introuvable');
+        gap.resolvedAt = new Date();
+        return this.kbGapRepository.save(gap);
     }
 }

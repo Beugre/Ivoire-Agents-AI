@@ -74,6 +74,12 @@ export class Conversation {
     @OneToMany(() => Message, (msg) => msg.conversation, { cascade: true })
     messages: Message[];
 
+    @Column({ nullable: true, type: 'int' })
+    leadScore: number;
+
+    @Column({ nullable: true, type: 'text' })
+    summary: string;
+
     @Column({ nullable: true })
     closedAt: Date;
 

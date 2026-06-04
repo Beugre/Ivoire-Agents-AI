@@ -17,6 +17,7 @@ import { User } from './users/entities/user.entity';
 import { Company } from './companies/entities/company.entity';
 import { Agent } from './agents/entities/agent.entity';
 import { KnowledgeBaseItem } from './knowledge-base/entities/knowledge-base-item.entity';
+import { KbGap } from './knowledge-base/entities/kb-gap.entity';
 import { Conversation } from './conversations/entities/conversation.entity';
 import { Message } from './conversations/entities/message.entity';
 import { Customer } from './customers/entities/customer.entity';
@@ -37,6 +38,7 @@ import { HandoffRequest } from './handoff/entities/handoff-request.entity';
           Company,
           Agent,
           KnowledgeBaseItem,
+          KbGap,
           Conversation,
           Message,
           Customer,

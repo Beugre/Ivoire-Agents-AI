@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/lib/api';
 import {
     MessageSquare, Bot, AlertCircle, TrendingUp,
-    ArrowUpRight, Zap, CheckCircle2, Circle,
+    ArrowUpRight, Zap, CheckCircle2, Circle, Lightbulb, TrendingDown, ExternalLink,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -75,6 +75,7 @@ export default function DashboardPage() {
     const [chartLoading, setChartLoading] = useState(true);
     const [agentCount, setAgentCount] = useState(0);
     const [kbCount, setKbCount] = useState(0);
+    const [gaps, setGaps] = useState<{ id: string; question: string; count: number; resolvedAt?: string }[]>([]);
 
     useEffect(() => {
         Promise.all([
@@ -82,12 +83,14 @@ export default function DashboardPage() {
             api.get('/conversations/stats/weekly'),
             api.get('/agents'),
             api.get('/knowledge-base'),
+            api.get('/conversations/gaps').catch(() => ({ data: [] })),
         ])
-            .then(([statsRes, weeklyRes, agentsRes, kbRes]) => {
+            .then(([statsRes, weeklyRes, agentsRes, kbRes, gapsRes]) => {
                 setStats(statsRes.data);
                 setWeeklyData(weeklyRes.data);
                 setAgentCount(Array.isArray(agentsRes.data) ? agentsRes.data.length : 0);
                 setKbCount(Array.isArray(kbRes.data) ? kbRes.data.length : 0);
+                setGaps(Array.isArray(gapsRes.data) ? gapsRes.data.filter((g: any) => !g.resolvedAt).slice(0, 6) : []);
             })
             .catch(() => {
                 setStats({ total: 0, open: 0, humanRequested: 0, closed: 0, totalMessages: 0 });
@@ -214,8 +217,41 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Coach IA — Lacunes KB */}
+            {gaps.length > 0 && (
+                <div className="rounded-2xl p-6 border" style={{ background: '#0f1117', borderColor: 'rgba(168,85,247,0.2)' }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.12)' }}>
+                                <Lightbulb className="w-4 h-4" style={{ color: '#a855f7' }} />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-white text-[15px]">Coach IA — Lacunes détectées</p>
+                                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Questions réelles sans réponse dans votre base de connaissances</p>
+                            </div>
+                        </div>
+                        <a href="/knowledge-base" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all hover:opacity-80"
+                            style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                            <ExternalLink className="w-3.5 h-3.5" />Corriger maintenant
+                        </a>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {gaps.map((gap) => (
+                            <a key={gap.id} href={`/knowledge-base?gap=${encodeURIComponent(gap.question)}`}
+                                className="flex items-start gap-3 p-3.5 rounded-xl border transition-all hover:border-purple-500/30 group"
+                                style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                                <TrendingDown className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#f87171' }} />
+                                <div className="min-w-0">
+                                    <p className="text-[12px] font-medium text-white line-clamp-2 group-hover:text-purple-300 transition-colors">{gap.question}</p>
+                                    <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>{gap.count}× posée</p>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
 

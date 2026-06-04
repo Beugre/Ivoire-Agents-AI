@@ -26,6 +26,12 @@ export class Customer {
     @Column({ nullable: true })
     waId: string;
 
+    @Column({ nullable: true, type: 'varchar', default: 'prospect' })
+    segment: string;
+
+    @Column({ nullable: true, type: 'text' })
+    notes: string;
+
     @ManyToOne(() => Company, { onDelete: 'CASCADE' })
     @JoinColumn()
     company: Company;

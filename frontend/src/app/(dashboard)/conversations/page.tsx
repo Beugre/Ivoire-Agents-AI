@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Send, Bot, User, UserCheck, RotateCcw, StickyNote, MessageSquare, X } from 'lucide-react';
+import { Send, Bot, User, UserCheck, RotateCcw, StickyNote, MessageSquare, X, Sparkles, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Customer { name?: string; phone: string; }
@@ -15,13 +15,15 @@ interface Conversation {
     customer?: Customer;
     updatedAt: string;
     createdAt: string;
+    leadScore?: number;
+    summary?: string;
 }
 
 const STATUS = {
-    ai_active:        { label: 'IA active',         color: '#22c55e' },
-    human_requested:  { label: 'Transfert demandé', color: '#f59e0b' },
-    human_active:     { label: 'Humain actif',      color: '#60a5fa' },
-    closed:           { label: 'Fermée',            color: 'rgba(255,255,255,0.2)' },
+    ai_active: { label: 'IA active', color: '#22c55e' },
+    human_requested: { label: 'Transfert demandé', color: '#f59e0b' },
+    human_active: { label: 'Humain actif', color: '#60a5fa' },
+    closed: { label: 'Fermée', color: 'rgba(255,255,255,0.2)' },
 };
 
 const inp: React.CSSProperties = {
@@ -32,14 +34,16 @@ const inp: React.CSSProperties = {
 };
 
 export default function ConversationsPage() {
-    const [conversations, setConversations]   = useState<Conversation[]>([]);
-    const [selected, setSelected]             = useState<Conversation | null>(null);
-    const [messages, setMessages]             = useState<Message[]>([]);
-    const [loading, setLoading]               = useState(true);
-    const [note, setNote]                     = useState('');
-    const [showNote, setShowNote]             = useState(false);
-    const [humanReply, setHumanReply]         = useState('');
-    const [sendingReply, setSendingReply]     = useState(false);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [selected, setSelected] = useState<Conversation | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [note, setNote] = useState('');
+    const [showNote, setShowNote] = useState(false);
+    const [humanReply, setHumanReply] = useState('');
+    const [sendingReply, setSendingReply] = useState(false);
+    const [summarizing, setSummarizing] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const fetchConversations = async () => {
@@ -92,8 +96,27 @@ export default function ConversationsPage() {
         finally { setSendingReply(false); }
     };
 
-    const formatDate = (d: string) =>
+    const handleSummarize = async () => {
+        if (!selected) return;
+        setSummarizing(true);
+        try {
+            const { data } = await api.post(`/conversations/${selected.id}/summarize`);
+            setSelected((prev) => prev ? { ...prev, summary: data.summary } : null);
+            setShowSummary(true);
+            toast.success('Résumé généré');
+        } catch { toast.error('Erreur lors de la génération du résumé'); }
+        finally { setSummarizing(false); }
+    };
+
+    formatDate = (d: string) =>
         new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    const leadBadge = (score?: number) => {
+        if (!score) return null;
+        if (score >= 70) return { icon: '🔥', color: '#f87171', bg: 'rgba(248,113,113,0.12)' };
+        if (score >= 40) return { icon: '⚡', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' };
+        return { icon: '🆕', color: 'rgba(255,255,255,0.3)', bg: 'rgba(255,255,255,0.04)' };
+    };
 
     return (
         <div className="flex h-screen" style={{ background: '#080a10' }}>
@@ -138,10 +161,17 @@ export default function ConversationsPage() {
                                         <span className="text-[13px] font-semibold text-white truncate pr-2">
                                             {conv.customer?.name ?? conv.customer?.phone ?? 'Client inconnu'}
                                         </span>
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium"
-                                            style={{ background: s.color + '18', color: s.color }}>
-                                            {s.label}
-                                        </span>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            {(() => {
+                                                const b = leadBadge(conv.leadScore); return b ? (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: b.bg, color: b.color }}>{b.icon} {conv.leadScore}</span>
+                                                ) : null;
+                                            })()}
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                                style={{ background: s.color + '18', color: s.color }}>
+                                                {s.label}
+                                            </span>
+                                        </div>
                                     </div>
                                     <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{formatDate(conv.updatedAt)}</p>
                                 </button>
@@ -171,6 +201,11 @@ export default function ConversationsPage() {
                                 <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{selected.customer?.phone}</p>
                             </div>
                             <div className="flex items-center gap-2">
+                                <button onClick={handleSummarize} disabled={summarizing}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all disabled:opacity-50"
+                                    style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                                    <Sparkles className="w-3.5 h-3.5" />{summarizing ? 'Analyse...' : 'Résumer'}
+                                </button>
                                 {selected.status !== 'closed' && (
                                     <>
                                         {selected.status === 'ai_active' && (
@@ -201,6 +236,21 @@ export default function ConversationsPage() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Résumé IA */}
+                        {selected.summary && showSummary && (
+                            <div className="flex-shrink-0 px-5 py-3 border-b" style={{ background: 'rgba(168,85,247,0.06)', borderColor: 'rgba(168,85,247,0.15)' }}>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-2">
+                                        <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#a855f7' }} />
+                                        <p className="text-[12px] leading-relaxed whitespace-pre-line" style={{ color: 'rgba(255,255,255,0.7)' }}>{selected.summary}</p>
+                                    </div>
+                                    <button onClick={() => setShowSummary(false)} className="flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Note interne */}
                         {showNote && (

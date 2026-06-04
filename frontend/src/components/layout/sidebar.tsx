@@ -13,7 +13,7 @@ import {
     CreditCard,
     LogOut,
     Handshake,
-    Sparkles,
+    Users,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
             { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
             { href: '/conversations', label: 'Conversations', icon: MessageSquare },
             { href: '/handoff', label: 'Prises en main', icon: Handshake },
+            { href: '/customers', label: 'Clients CRM', icon: Users },
         ],
     },
     {

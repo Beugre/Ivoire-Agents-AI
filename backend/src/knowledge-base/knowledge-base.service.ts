@@ -51,14 +51,19 @@ export class KnowledgeBaseService {
             .join('\n\n');
     }
 
-    async testAgentAnswer(agentId: string, companyId: string, question: string, aiService: any): Promise<{ answer: string }> {
+    async testAgentAnswer(agentId: string, companyId: string, question: string, aiService: any, persona?: string): Promise<{ answer: string }> {
         const knowledge = await this.getFormattedKnowledge(agentId, companyId);
+        const personaInstructions: Record<string, string> = {
+            difficult: "Tu simules un client difficile et exigeant qui n'est jamais satisfait, conteste les informations et se plaint fréquemment.",
+            pressed: "Tu simules un client très pressé qui veut des réponses ultra-courtes et immédiates. Il est impatient et peu tolérant aux explications longues.",
+            negotiator: "Tu simules un client qui négocie systématiquement les prix, cherche des remises, compare avec la concurrence et veut des avantages.",
+        };
         const fakeAgent = {
             name: 'Assistant IA',
             role: 'Répondre aux questions sur l\'entreprise',
             tone: 'professional',
             language: 'french',
-            customInstructions: null,
+            customInstructions: persona && personaInstructions[persona] ? `[CONTEXTE TEST - Persona client simulé]: ${personaInstructions[persona]}` : null,
         } as any;
         const result = await aiService.generateReply(fakeAgent, '', knowledge, [], question);
         return { answer: typeof result === 'string' ? result : result.text };
