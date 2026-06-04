@@ -72,7 +72,7 @@ export default function AgentForm({ agent, onSaved }: Props) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="role">Rôle *</Label>
-                    <select id="role" className="w-full border rounded-md px-3 py-2 text-sm bg-white" {...register('role')}>
+                    <select id="role" className="w-full rounded-md px-3 py-2 text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', colorScheme: 'dark' }} {...register('role')}>
                         <option value="commercial">💼 Commercial</option>
                         <option value="support">🛠️ Support client</option>
                         <option value="secretary">📋 Secrétaire</option>
@@ -83,7 +83,7 @@ export default function AgentForm({ agent, onSaved }: Props) {
 
                 <div className="space-y-2">
                     <Label htmlFor="tone">Ton *</Label>
-                    <select id="tone" className="w-full border rounded-md px-3 py-2 text-sm bg-white" {...register('tone')}>
+                    <select id="tone" className="w-full rounded-md px-3 py-2 text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', colorScheme: 'dark' }} {...register('tone')}>
                         <option value="professional">Professionnel</option>
                         <option value="warm">Chaleureux</option>
                         <option value="ivorian">🇨🇮 Ivoirien</option>
@@ -95,7 +95,7 @@ export default function AgentForm({ agent, onSaved }: Props) {
 
             <div className="space-y-2">
                 <Label htmlFor="language">Langue *</Label>
-                <select id="language" className="w-full border rounded-md px-3 py-2 text-sm bg-white" {...register('language')}>
+                <select id="language" className="w-full rounded-md px-3 py-2 text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', colorScheme: 'dark' }} {...register('language')}>
                     <option value="french">🇫🇷 Français standard</option>
                     <option value="ivorian_french">🇨🇮 Français ivoirien</option>
                 </select>

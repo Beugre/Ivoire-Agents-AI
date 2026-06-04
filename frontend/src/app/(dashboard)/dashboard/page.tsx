@@ -73,15 +73,21 @@ export default function DashboardPage() {
     const [weeklyData, setWeeklyData] = useState<DayData[]>([]);
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(true);
+    const [agentCount, setAgentCount] = useState(0);
+    const [kbCount, setKbCount] = useState(0);
 
     useEffect(() => {
         Promise.all([
             api.get('/conversations/stats'),
             api.get('/conversations/stats/weekly'),
+            api.get('/agents'),
+            api.get('/knowledge-base'),
         ])
-            .then(([statsRes, weeklyRes]) => {
+            .then(([statsRes, weeklyRes, agentsRes, kbRes]) => {
                 setStats(statsRes.data);
                 setWeeklyData(weeklyRes.data);
+                setAgentCount(Array.isArray(agentsRes.data) ? agentsRes.data.length : 0);
+                setKbCount(Array.isArray(kbRes.data) ? kbRes.data.length : 0);
             })
             .catch(() => {
                 setStats({ total: 0, open: 0, humanRequested: 0, closed: 0, totalMessages: 0 });
@@ -101,8 +107,8 @@ export default function DashboardPage() {
     ];
 
     const setupSteps = [
-        { label: 'Créer un agent IA', href: '/agents', done: false },
-        { label: 'Remplir la base de connaissances', href: '/knowledge-base', done: false },
+        { label: 'Créer un agent IA', href: '/agents', done: agentCount > 0 },
+        { label: 'Remplir la base de connaissances', href: '/knowledge-base', done: kbCount > 0 },
         { label: 'Configurer WhatsApp', href: '/settings', done: !!company?.whatsappConnected },
         { label: 'Premier message reçu', href: '/conversations', done: (stats?.total ?? 0) > 0 },
     ];

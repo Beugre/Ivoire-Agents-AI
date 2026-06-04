@@ -10,7 +10,11 @@ import {
     UseGuards,
     Request,
     ParseUUIDPipe,
+    UploadedFile,
+    UseInterceptors,
+    BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { CreateKbItemDto } from './dto/create-kb-item.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -74,5 +78,53 @@ export class KnowledgeBaseController {
         @Request() req,
     ) {
         return this.kbService.testAgentAnswer(body.agentId, req.user.companyId, body.question, this.aiService);
+    }
+
+    @Post('import-url')
+    async importFromUrl(
+        @Body() body: { url: string; agentId: string },
+        @Request() req,
+    ) {
+        if (!body.url?.startsWith('http')) throw new BadRequestException('URL invalide');
+        const extracted = await this.aiService.scrapeAndExtract(body.url);
+        const created: import('./entities/knowledge-base-item.entity').KnowledgeBaseItem[] = [];
+        for (const item of extracted) {
+            const saved = await this.kbService.create(
+                { ...item, agentId: body.agentId } as import('./dto/create-kb-item.dto').CreateKbItemDto,
+                req.user.companyId,
+            );
+            created.push(saved);
+        }
+        return created;
+    }
+
+    @Post('import-file')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+    async importFromFile(
+        @UploadedFile() file: Express.Multer.File,
+        @Body('agentId') agentId: string,
+        @Request() req,
+    ) {
+        if (!file) throw new BadRequestException('Fichier requis');
+        const text = file.buffer.toString('utf-8');
+        if (!text.trim()) throw new BadRequestException('Fichier vide ou non lisible');
+        const extracted = await this.aiService.extractKnowledgeFromText(text);
+        const created: import('./entities/knowledge-base-item.entity').KnowledgeBaseItem[] = [];
+        for (const item of extracted) {
+            const saved = await this.kbService.create(
+                { ...item, agentId } as import('./dto/create-kb-item.dto').CreateKbItemDto,
+                req.user.companyId,
+            );
+            created.push(saved);
+        }
+        return created;
+    }
+
+    @Post('generate-faqs')
+    async generateFaqs(
+        @Body() body: { agentId: string },
+        @Request() req,
+    ) {
+        return this.aiService.generateFaqs(body.agentId, req.user.companyId, this.kbService);
     }
 }
