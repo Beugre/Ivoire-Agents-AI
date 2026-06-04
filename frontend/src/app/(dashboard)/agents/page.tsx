@@ -21,9 +21,9 @@ import { toast } from 'sonner';
 interface Agent {
     id: string;
     name: string;
-    role: string;
-    tone: string;
-    language: string;
+    role: 'commercial' | 'support' | 'secretary' | 'sav' | 'reservation';
+    tone: 'professional' | 'warm' | 'ivorian' | 'formal' | 'friendly';
+    language: 'french' | 'ivorian_french';
     isActive: boolean;
     createdAt: string;
 }
