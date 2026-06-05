@@ -195,8 +195,15 @@ export default function WhatsAppConnectPage() {
         }
         setConnecting(true);
 
+        // Timeout de sécurité : si la popup Meta ne répond pas en 90s, reset
+        const safetyTimeout = setTimeout(() => {
+            setConnecting(false);
+            toast.error('La fenêtre Meta a été fermée ou bloquée. Vérifiez que les popups sont autorisées.');
+        }, 90_000);
+
         window.FB.login(
             async (response) => {
+                clearTimeout(safetyTimeout);
                 if (response.status !== 'connected' || !response.authResponse) {
                     setConnecting(false);
                     if (response.status !== 'unknown') {
@@ -482,6 +489,43 @@ export default function WhatsAppConnectPage() {
                         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
                             Vous serez redirigé vers Meta Business pour autoriser la connexion.
                         </p>
+                    </div>
+
+                    {/* Encart WhatsApp perso */}
+                    <div
+                        className="rounded-2xl border p-5 space-y-4"
+                        style={{ background: '#0f1117', borderColor: 'rgba(255,255,255,0.07)' }}
+                    >
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 2 }} />
+                            <div>
+                                <p className="text-sm font-semibold text-white">Vous avez un WhatsApp personnel ?</p>
+                                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                    L&apos;API WhatsApp nécessite un compte WhatsApp Business. Bonne nouvelle : la conversion est gratuite et vous gardez votre numéro et vos contacts.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <a
+                                href="https://www.whatsapp.com/business/download"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex flex-col gap-1 p-3 rounded-xl text-xs transition hover:opacity-90"
+                                style={{ background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.2)', color: 'rgba(255,255,255,0.7)' }}
+                            >
+                                <span className="font-semibold text-white">Option 1 — Convertir votre numéro</span>
+                                <span>Téléchargez WhatsApp Business et convertissez votre numéro existant gratuitement. Prend 5 minutes.</span>
+                                <span style={{ color: '#25D366', marginTop: 4 }}>Télécharger WhatsApp Business →</span>
+                            </a>
+                            <div
+                                className="flex flex-col gap-1 p-3 rounded-xl text-xs"
+                                style={{ background: 'rgba(245,166,35,0.06)', border: '1px solid rgba(245,166,35,0.18)', color: 'rgba(255,255,255,0.7)' }}
+                            >
+                                <span className="font-semibold text-white">Option 2 — Numéro géré par la plateforme</span>
+                                <span>Ivoire Agents peut vous attribuer un numéro dédié. Vos clients écrivent à ce numéro et l&apos;agent IA leur répond.</span>
+                                <span style={{ color: '#f5a623', marginTop: 4 }}>Contactez-nous pour cette option</span>
+                            </div>
+                        </div>
                     </div>
                 </>
             )}
