@@ -13,7 +13,7 @@ export interface NouchiWord {
 // ─── Salutations & expressions courantes ────────────────────────────────────
 export const SALUTATIONS: NouchiWord[] = [
     { mot: "C'est comment ?", sens: "Comment ça va ?", exemple: "C'est comment frê ?" },
-    { mot: "Sava", sens: "Ça va (salut rapide)", exemple: "Sava wêwê ?" },
+    { mot: "C'est comment ?", sens: "Ça va (salut)", exemple: "C'est comment wêwê ?" },
     { mot: "Wêwê", sens: "Vraiment / exactement", exemple: "C'est wêwê !" },
     { mot: "Yako", sens: "Désolé pour toi / compatir", exemple: "Yako, c'est dommage." },
     { mot: "Ya fohi / Ya foye", sens: "D'accord / pas de problème / OK", exemple: "Ya fohi, on va gérer." },
@@ -198,7 +198,8 @@ ${lines}
 
 Règles d'usage :
 - Mélange naturellement le français ivoirien et le nouchi, ne force pas.
-- Utilise les salutations nouchi en ouverture (C'est comment ?, Sava, Prends mon gbô...).
+- Utilise les salutations nouchi en ouverture (C'est comment ?, On dit quoi ?...).
+- IMPORTANT : écris toujours "ça va" correctement, jamais "sava" ni "sava frê".
 - Exprime l'approbation avec : Ya fohi, C'est gbê, Kpata, Yafor.
 - Pour les prix : utilise les noms nouchi des billets (barre, gbèss, krikas, rougeau) en plus du montant FCFA.
 - Pour exprimer de la compassion : Yako.
