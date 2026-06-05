@@ -14,7 +14,12 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3001',
+    origin: [
+      process.env.FRONTEND_URL ?? 'http://localhost:3001',
+      'https://ivoire-agents-frontend.vercel.app',
+      'https://ivoire-agents-ai.vercel.app',
+      /\.vercel\.app$/,
+    ],
     credentials: true,
   });
 
