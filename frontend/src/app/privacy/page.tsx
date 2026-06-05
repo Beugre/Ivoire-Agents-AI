@@ -29,7 +29,7 @@ export default function PrivacyPage() {
 
                     <Section title="2. Données collectées">
                         <p>Nous collectons les données suivantes :</p>
-                        <ul style={{ marginTop: '12px', paddingLeft: '20px', spaceY: '8px' }}>
+                        <ul style={{ marginTop: '12px', paddingLeft: '20px' }}>
                             <li style={{ marginBottom: '8px' }}><strong>Données de compte</strong> : nom de l'entreprise, email, numéro de téléphone, secteur d'activité, ville.</li>
                             <li style={{ marginBottom: '8px' }}><strong>Données WhatsApp Business</strong> : numéro de téléphone professionnel, identifiants WABA (chiffrés), statut de connexion.</li>
                             <li style={{ marginBottom: '8px' }}><strong>Données de conversations</strong> : messages échangés entre vos clients et votre agent IA, dans le cadre de votre activité professionnelle.</li>
