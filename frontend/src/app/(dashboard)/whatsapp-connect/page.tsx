@@ -113,7 +113,7 @@ const STEPS = [
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? '';
 
 export default function WhatsAppConnectPage() {
-    const { user } = useAuthStore();
+    const { company } = useAuthStore();
 
     const [status, setStatus] = useState<ConnectionStatus | null>(null);
     const [loadingStatus, setLoadingStatus] = useState(true);
