@@ -166,8 +166,8 @@ export default function WhatsAppConnectPage() {
             {/* Tabs */}
             <div className="flex gap-2">
                 {([
-                    { key: 'qr', label: 'Votre numéro (QR code)', badge: 'Recommandé' },
-                    { key: 'meta', label: 'WhatsApp Business API' },
+                    { key: 'qr', label: 'Votre numéro (QR code)', badge: 'Recommandé' as string | undefined },
+                    { key: 'meta', label: 'WhatsApp Business API', badge: undefined as string | undefined },
                 ] as const).map((t) => (
                     <button key={t.key} onClick={() => setTab(t.key)}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition"
