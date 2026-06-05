@@ -49,18 +49,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     login: async (email, password) => {
         set({ isLoading: true });
-        const { data } = await api.post('/auth/login', { email, password });
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('company', JSON.stringify(data.company));
-        set({ token: data.token, company: data.company, isLoading: false });
+        try {
+            const { data } = await api.post('/auth/login', { email, password });
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('company', JSON.stringify(data.company));
+            set({ token: data.token, company: data.company, isLoading: false });
+        } catch (err) {
+            set({ isLoading: false });
+            throw err;
+        }
     },
 
     register: async (formData) => {
         set({ isLoading: true });
-        const { data } = await api.post('/auth/register', formData);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('company', JSON.stringify(data.company));
-        set({ token: data.token, company: data.company, isLoading: false });
+        try {
+            const { data } = await api.post('/auth/register', formData);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('company', JSON.stringify(data.company));
+            set({ token: data.token, company: data.company, isLoading: false });
+        } catch (err) {
+            set({ isLoading: false });
+            throw err;
+        }
     },
 
     logout: () => {
