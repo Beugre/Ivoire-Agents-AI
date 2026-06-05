@@ -52,8 +52,8 @@ export default function WhatsAppConnectPage() {
 
     // Chargement initial
     useEffect(() => {
-        api.get<BaileysStatus>('/baileys/status').then((r) => setBaileys(r.data)).catch(() => {});
-        api.get<MetaStatus>('/whatsapp-connect/status').then((r) => setMetaStatus(r.data)).catch(() => {});
+        api.get<BaileysStatus>('/baileys/status').then((r) => setBaileys(r.data)).catch(() => { });
+        api.get<MetaStatus>('/whatsapp-connect/status').then((r) => setMetaStatus(r.data)).catch(() => { });
     }, []);
 
     // Polling Baileys
@@ -63,14 +63,18 @@ export default function WhatsAppConnectPage() {
                 pollRef.current = setInterval(async () => {
                     try {
                         const r = await api.get<BaileysStatus>('/baileys/status');
-                        setBaileys(r.data);
+                        // Ne mettre à jour que si le statut ou le QR a changé
+                        setBaileys((prev) => {
+                            if (prev.status === r.data.status && prev.qr === r.data.qr) return prev;
+                            return r.data;
+                        });
                         if (r.data.status === 'connected') {
                             clearInterval(pollRef.current!);
                             pollRef.current = null;
                             toast.success(`WhatsApp connecté — ${r.data.displayName ?? r.data.phoneNumber}`);
                         }
-                    } catch {}
-                }, 3000);
+                    } catch { }
+                }, 10000);
             }
         } else {
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -107,7 +111,7 @@ export default function WhatsAppConnectPage() {
             try {
                 const d = JSON.parse(event.data as string);
                 if (d.type === 'WA_EMBEDDED_SIGNUP' && d.event === 'FINISH') window.__waSignupData = d.data;
-            } catch {}
+            } catch { }
         };
         window.addEventListener('message', handleMsg);
         window.fbAsyncInit = () => {
@@ -234,13 +238,13 @@ export default function WhatsAppConnectPage() {
                                     </div>
                                     <div className="text-center space-y-1.5">
                                         {['1. Ouvrez WhatsApp sur votre téléphone',
-                                          '2. Appuyez sur ⋮ (ou Paramètres) → Appareils connectés',
-                                          '3. Appuyez sur "Associer un appareil" et scannez'].map((s) => (
-                                            <p key={s} className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{s}</p>
-                                        ))}
+                                            '2. Appuyez sur ⋮ (ou Paramètres) → Appareils connectés',
+                                            '3. Appuyez sur "Associer un appareil" et scannez'].map((s) => (
+                                                <p key={s} className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{s}</p>
+                                            ))}
                                     </div>
                                     <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                                        Le QR expire après 60 secondes et se régénère automatiquement
+                                        Le QR se régénère automatiquement si vous êtes trop long — scannez-le dès qu&apos;il apparaît
                                     </p>
                                 </div>
                             ) : (
@@ -345,8 +349,8 @@ export default function WhatsAppConnectPage() {
                                     className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl text-sm font-semibold"
                                     style={{ background: 'rgba(24,119,242,0.15)', color: '#4f96ff', border: '1px solid rgba(24,119,242,0.3)' }}>
                                     {connectingMeta ? <><Loader2 size={15} className="animate-spin" />Connexion…</> :
-                                     !metaSdkReady ? <><Loader2 size={15} className="animate-spin" />Chargement…</> :
-                                     <>Connecter via Meta Business <ChevronRight size={14} /></>}
+                                        !metaSdkReady ? <><Loader2 size={15} className="animate-spin" />Chargement…</> :
+                                            <>Connecter via Meta Business <ChevronRight size={14} /></>}
                                 </button>
                             )}
                         </div>
