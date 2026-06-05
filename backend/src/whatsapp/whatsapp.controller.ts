@@ -5,18 +5,29 @@ import {
     Query,
     Body,
     Res,
+    Req,
+    Headers,
     HttpCode,
     HttpStatus,
     Logger,
+    ForbiddenException,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
+import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { SkipThrottle } from '@nestjs/throttler';
 import { WhatsappService } from './whatsapp.service';
+
+@SkipThrottle()
 
 @Controller('webhooks/whatsapp')
 export class WhatsappController {
     private readonly logger = new Logger(WhatsappController.name);
 
-    constructor(private readonly whatsappService: WhatsappService) { }
+    constructor(
+        private readonly whatsappService: WhatsappService,
+        private readonly configService: ConfigService,
+    ) { }
 
     @Get()
     verifyWebhook(
@@ -35,7 +46,21 @@ export class WhatsappController {
 
     @Post()
     @HttpCode(HttpStatus.OK)
-    async handleMessage(@Body() body: any) {
+    async handleMessage(
+        @Body() body: any,
+        @Headers('x-hub-signature-256') signature: string,
+    ) {
+        const appSecret = this.configService.get<string>('META_APP_SECRET');
+        if (appSecret) {
+            const expected = 'sha256=' + crypto
+                .createHmac('sha256', appSecret)
+                .update(JSON.stringify(body))
+                .digest('hex');
+            if (!signature || signature !== expected) {
+                this.logger.warn('Signature webhook Meta invalide — requête rejetée');
+                throw new ForbiddenException('Signature invalide');
+            }
+        }
         this.logger.log('Webhook WhatsApp reçu');
         await this.whatsappService.handleIncomingMessage(body);
         return { status: 'ok' };

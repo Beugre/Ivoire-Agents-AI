@@ -6,6 +6,7 @@ import {
     UpdateDateColumn,
     ManyToOne,
     JoinColumn,
+    Index,
 } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 
@@ -24,6 +25,7 @@ export class Customer {
     email: string;
 
     @Column({ nullable: true })
+    @Index()
     waId: string;
 
     @Column({ nullable: true, type: 'varchar', default: 'prospect' })
@@ -37,6 +39,7 @@ export class Customer {
     company: Company;
 
     @Column()
+    @Index()
     companyId: string;
 
     @CreateDateColumn()

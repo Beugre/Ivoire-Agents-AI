@@ -94,12 +94,32 @@ ${knowledgeBase}`;
 
         messages.push({ role: 'user', content: customerMessage });
 
-        const completion = await this.openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages,
-            max_tokens: 500,
-            temperature: 0.7,
-        });
+        const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('OPENAI_TIMEOUT')), TIMEOUT_MS),
+        );
+
+        let completion: any;
+        try {
+            completion = await Promise.race([
+                this.openai.chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages,
+                    max_tokens: 500,
+                    temperature: 0.7,
+                }),
+                timeoutPromise,
+            ]);
+        } catch (err: any) {
+            if (err?.message === 'OPENAI_TIMEOUT') {
+                return {
+                    text: "Vous êtes nombreux en ce moment, je reviens vers vous rapidement. 🙏",
+                    totalTokens: 0,
+                    isFallback: true,
+                };
+            }
+            throw err;
+        }
 
         const text = completion.choices[0]?.message?.content ?? "Je suis désolé, je ne peux pas répondre pour le moment.";
         const totalTokens = completion.usage?.total_tokens ?? 0;

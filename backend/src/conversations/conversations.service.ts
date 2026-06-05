@@ -92,11 +92,12 @@ export class ConversationsService {
         return this.convRepository.save(conv);
     }
 
-    async getMessages(conversationId: string, companyId: string): Promise<Message[]> {
+    async getMessages(conversationId: string, companyId: string, limit = 50): Promise<Message[]> {
         await this.findOne(conversationId, companyId);
         return this.msgRepository.find({
             where: { conversationId },
             order: { createdAt: 'ASC' },
+            take: limit,
         });
     }
 

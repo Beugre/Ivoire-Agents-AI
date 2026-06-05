@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { WhatsappService } from './whatsapp.service';
 import { WhatsappController } from './whatsapp.controller';
 import { WhatsappConnectionService } from './whatsapp-connection.service';
@@ -15,6 +16,7 @@ import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
     imports: [
+        ConfigModule,
         TypeOrmModule.forFeature([WhatsappConnection]),
         ConversationsModule,
         AgentsModule,

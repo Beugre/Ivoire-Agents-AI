@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CompaniesModule } from './companies/companies.module';
@@ -73,6 +75,11 @@ import { WhatsappConnection } from './whatsapp/entities/whatsapp-connection.enti
     SubscriptionsModule,
     HandoffModule,
     CampaignsModule,
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 60 }]),
+  ],
+  providers: [
+    // Rate limiting global (60 req/min par IP) — surchargé à 5/min sur /auth
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule { }

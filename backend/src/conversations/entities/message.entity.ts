@@ -5,6 +5,7 @@ import {
     CreateDateColumn,
     ManyToOne,
     JoinColumn,
+    Index,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 
@@ -50,6 +51,7 @@ export class Message {
     conversation: Conversation;
 
     @Column()
+    @Index()
     conversationId: string;
 
     @CreateDateColumn()

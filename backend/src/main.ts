@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import * as helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -12,6 +13,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Sécurité HTTP headers
+  app.use((helmet as any).default ? (helmet as any).default() : (helmet as any)());
 
   app.enableCors({
     origin: [

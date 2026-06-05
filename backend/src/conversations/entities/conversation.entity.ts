@@ -7,6 +7,7 @@ import {
     ManyToOne,
     OneToMany,
     JoinColumn,
+    Index,
 } from 'typeorm';
 import { Agent } from '../../agents/entities/agent.entity';
 import { Company } from '../../companies/entities/company.entity';
@@ -62,6 +63,7 @@ export class Conversation {
     company: Company;
 
     @Column()
+    @Index()
     companyId: string;
 
     @ManyToOne(() => Customer, { onDelete: 'SET NULL', nullable: true, eager: true })
