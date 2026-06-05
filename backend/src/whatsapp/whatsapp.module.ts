@@ -13,6 +13,7 @@ import { AiModule } from '../ai/ai.module';
 import { CustomersModule } from '../customers/customers.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { CompaniesModule } from '../companies/companies.module';
+import { BaileysModule } from '../baileys/baileys.module';
 
 @Module({
     imports: [
@@ -25,6 +26,7 @@ import { CompaniesModule } from '../companies/companies.module';
         CustomersModule,
         SubscriptionsModule,
         CompaniesModule,
+        BaileysModule,
     ],
     providers: [WhatsappService, WhatsappConnectionService],
     controllers: [WhatsappController, WhatsappConnectionController],

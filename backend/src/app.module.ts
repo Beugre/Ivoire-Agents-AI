@@ -16,6 +16,7 @@ import { CustomersModule } from './customers/customers.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { HandoffModule } from './handoff/handoff.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { BaileysModule } from './baileys/baileys.module';
 
 import { User } from './users/entities/user.entity';
 import { Company } from './companies/entities/company.entity';
@@ -31,6 +32,7 @@ import { Subscription } from './subscriptions/entities/subscription.entity';
 import { HandoffRequest } from './handoff/entities/handoff-request.entity';
 import { Campaign } from './campaigns/entities/campaign.entity';
 import { WhatsappConnection } from './whatsapp/entities/whatsapp-connection.entity';
+import { BaileysSession } from './baileys/entities/baileys-session.entity';
 
 @Module({
   imports: [
@@ -57,6 +59,7 @@ import { WhatsappConnection } from './whatsapp/entities/whatsapp-connection.enti
           HandoffRequest,
           Campaign,
           WhatsappConnection,
+          BaileysSession,
         ],
         synchronize: true,
         ssl: config.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
@@ -75,6 +78,7 @@ import { WhatsappConnection } from './whatsapp/entities/whatsapp-connection.enti
     SubscriptionsModule,
     HandoffModule,
     CampaignsModule,
+    BaileysModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 60 }]),
   ],
   providers: [

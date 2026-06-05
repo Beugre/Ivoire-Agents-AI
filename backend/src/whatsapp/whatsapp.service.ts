@@ -20,6 +20,7 @@ import { Company } from '../companies/entities/company.entity';
 import { ConversationStatus } from '../conversations/entities/conversation.entity';
 import { MessageSender } from '../conversations/entities/message.entity';
 import { WhatsappConnectionService } from './whatsapp-connection.service';
+import { BaileysService } from '../baileys/baileys.service';
 
 @Injectable()
 export class WhatsappService {
@@ -37,6 +38,8 @@ export class WhatsappService {
         private readonly companiesService: CompaniesService,
         @Inject(forwardRef(() => WhatsappConnectionService))
         private readonly connectionService: WhatsappConnectionService,
+        @Inject(forwardRef(() => BaileysService))
+        private readonly baileysService: BaileysService,
     ) { }
 
     verifyWebhook(mode: string, token: string, challenge: string): string {
@@ -222,18 +225,23 @@ Téléphone: ${company.phone ?? 'Non précisé'}
         );
     }
 
-    /** Utilisé par CampaignsService — résout le token per-company automatiquement */
+    /** Utilisé par CampaignsService — résout le canal d'envoi automatiquement */
     async sendTextMessage(to: string, text: string, companyId: string): Promise<void> {
-        const conn = await this.connectionService.getActiveConnection(companyId);
-        let phoneNumberId: string;
-        let token: string;
-        if (conn) {
-            phoneNumberId = conn.phoneNumberId;
-            token = this.connectionService.decryptToken(conn.accessTokenEncrypted);
-        } else {
-            phoneNumberId = this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID') ?? '';
-            token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN') ?? '';
+        // 1. Baileys (QR code)
+        if (this.baileysService.hasActiveSession(companyId)) {
+            await this.baileysService.sendMessage(companyId, to, text);
+            return;
         }
+        // 2. Meta Embedded Signup per-company
+        const conn = await this.connectionService.getActiveConnection(companyId);
+        if (conn) {
+            const token = this.connectionService.decryptToken(conn.accessTokenEncrypted);
+            await this.sendMessageWithToken(conn.phoneNumberId, to, text, token);
+            return;
+        }
+        // 3. Fallback env vars (legacy)
+        const phoneNumberId = this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID') ?? '';
+        const token = this.configService.get<string>('WHATSAPP_ACCESS_TOKEN') ?? '';
         await this.sendMessageWithToken(phoneNumberId, to, text, token);
     }
 
